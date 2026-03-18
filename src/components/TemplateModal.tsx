@@ -12,6 +12,31 @@ import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate } from "@
 import { getApiKey } from "@/lib/api";
 import { supabaseGetAssumptionTemplates } from "@/lib/supabase";
 
+function formatUSD(value: string): string {
+  const num = value.replace(/[^0-9]/g, "");
+  if (!num) return "";
+  return Number(num).toLocaleString("en-US");
+}
+
+function parseUSD(formatted: string): string {
+  return formatted.replace(/[^0-9]/g, "");
+}
+
+const ASSUMPTION_LABELS: Record<string, string> = {
+  ltv: "LTV",
+  closing_pct: "Closing Cost %",
+  vacancy: "Vacancy",
+  opex_ratio: "OpEx Ratio",
+  int_rate: "Interest Rate",
+  rent_growth_1: "Yr 1 Rent Growth",
+  other_inc_mo: "Other Monthly Inc",
+};
+
+function formatAssumptionValue(key: string, val: number): string {
+  if (key === "other_inc_mo") return `$${val.toLocaleString("en-US")}`;
+  return `${(val * 100).toFixed(1)}%`;
+}
+
 const UNIT_ROWS = [
   { label: "Studio", bed: 0 },
   { label: "Single", bed: 1 },
