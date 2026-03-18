@@ -44,3 +44,36 @@ export interface Assumptions {
   rent_growth_1: number;
   other_inc_mo: number;
 }
+
+export interface UnitCombo {
+  bed: number;
+  bath: number;
+  units: number;
+}
+
+export interface CommercialSpace {
+  space_type: string;
+  sqft: number;
+  price_per_sqft: number;
+  annual_revenue: number;
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  is_default?: boolean;
+  address: string;
+  lat?: number;
+  lng?: number;
+  price?: number;
+  improvements?: number;
+  sqft?: number;
+  combos: UnitCombo[];
+  total_units: number;
+  radius?: number;
+  min_comps?: number;
+  max_comps?: number;
+  commercial_spaces?: CommercialSpace[];
+  status?: string;
+  created_at?: string;
+}
