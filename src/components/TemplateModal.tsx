@@ -271,7 +271,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
               className="text-base font-semibold"
             />
           </div>
-          <button onClick={onClose} className="ml-4 rounded-md p-1 text-muted-foreground hover:text-foreground">
+          <button onClick={() => { setSaving(false); setValidationError(""); onClose(); }} className="ml-4 rounded-md p-1 text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
