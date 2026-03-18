@@ -19,7 +19,10 @@ const f = (v: unknown) =>
 const i = (v: unknown) =>
   v != null && v !== "" ? parseInt(String(v), 10) : undefined;
 
-const DS =
+const DS_LIST =
+  "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,results,status,created_at,preset_name,archived";
+
+const DS_DETAIL =
   "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,excel_data,docx_data,results,status,created_at,preset_name,archived";
 
 function normalizeDeal(row: Record<string, unknown>): Deal {
