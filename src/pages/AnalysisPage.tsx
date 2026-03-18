@@ -121,6 +121,18 @@ export default function AnalysisPage() {
     navigate("/deals");
   };
 
+  const handleRunTemplate = async (t: Template) => {
+    try {
+      const { apiPost } = await import("@/lib/api");
+      const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: t.id };
+      await apiPost("/crm/analyze", analyzeBody);
+      toast({ title: "Analysis running", description: "Results will appear in Deals." });
+      navigate("/deals");
+    } catch {
+      toast({ title: "Error", description: "Failed to start analysis.", variant: "destructive" });
+    }
+  };
+
   const handleDuplicate = async (t: Template) => {
     const { id, ...rest } = t;
     await supabaseCreateTemplate({ ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
