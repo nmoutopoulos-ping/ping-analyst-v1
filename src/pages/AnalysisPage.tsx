@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, MoreVertical, MapPin } from "lucide-react";
+import { Search, Plus, MoreVertical, MapPin, Play } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
@@ -119,6 +119,18 @@ export default function AnalysisPage() {
     setModalOpen(false);
     toast({ title: "Analysis running", description: "Results will appear in Deals." });
     navigate("/deals");
+  };
+
+  const handleRunTemplate = async (t: Template) => {
+    try {
+      const { apiPost } = await import("@/lib/api");
+      const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: t.id };
+      await apiPost("/crm/analyze", analyzeBody);
+      toast({ title: "Analysis running", description: "Results will appear in Deals." });
+      navigate("/deals");
+    } catch {
+      toast({ title: "Error", description: "Failed to start analysis.", variant: "destructive" });
+    }
   };
 
   const handleDuplicate = async (t: Template) => {
@@ -262,18 +274,28 @@ export default function AnalysisPage() {
                   </div>
                 )}
 
-                {/* Edit button */}
-                <div className="mt-4 pt-3 border-t border-border">
+                {/* Action buttons */}
+                <div className="mt-4 pt-3 border-t border-border flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="flex-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       openEdit(t);
                     }}
                   >
                     Edit Template
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRunTemplate(t);
+                    }}
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1" /> Run
                   </Button>
                 </div>
               </div>
