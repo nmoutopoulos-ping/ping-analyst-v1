@@ -317,7 +317,7 @@ export default function AnalysisPage() {
         template={editingTemplate}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
-        onSaveAndRun={!editingTemplate ? handleSaveAndRun : undefined}
+        onSaveAndRun={handleSaveAndRun}
       />
 
       {/* Delete confirmation */}
