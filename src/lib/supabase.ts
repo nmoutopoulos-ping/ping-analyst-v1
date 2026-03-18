@@ -144,6 +144,18 @@ export async function supabaseArchiveDeal(searchId: string) {
   if (!r.ok) throw new Error("Failed to archive deal");
 }
 
+export async function supabaseUpdateDealStage(searchId: string, stage: string) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}`,
+    {
+      method: "PATCH",
+      headers: { ...H, Prefer: "return=representation" },
+      body: JSON.stringify({ deal_stage: stage }),
+    }
+  );
+  if (!r.ok) throw new Error("Failed to update deal stage");
+}
+
 // ── Assumption Templates ──
 
 export async function supabaseGetAssumptionTemplates(apiKey: string): Promise<AssumptionTemplate[]> {

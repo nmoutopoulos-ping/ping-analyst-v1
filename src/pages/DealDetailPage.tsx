@@ -53,10 +53,7 @@ export default function DealDetailPage() {
     if (!deal) return;
     setSaving(true);
     try {
-      await apiPatch(`/deals/${deal.search_id}/stage`, {
-        api_key: getApiKey(),
-        stage: newStage,
-      });
+      await supabaseUpdateDealStage(deal.search_id, newStage);
       setDeal({ ...deal, stage: newStage });
       toast({ title: "Stage updated", description: `Deal moved to ${newStage}.` });
     } catch {
