@@ -270,7 +270,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
         if (i !== idx) return row;
         const updated = { ...row, [field]: value };
         if (field === "sqft" || field === "price_per_sqft") {
-          updated.annual_revenue = (Number(updated.sqft) || 0) * (Number(updated.price_per_sqft) || 0);
+          updated.annual_revenue = ((Number(updated.sqft) || 0) * (Number(updated.price_per_sqft) || 0)) / 12;
         }
         return updated;
       })
