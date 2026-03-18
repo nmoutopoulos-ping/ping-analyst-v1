@@ -475,8 +475,12 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <div className="flex flex-col gap-2 border-t border-border px-6 py-4">
+          {validationError && (
+            <p className="text-sm text-destructive">{validationError}</p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" onClick={() => { setValidationError(""); onClose(); }} disabled={saving}>Cancel</Button>
           {isNew && onSaveAndRun && (
             <Button onClick={handleSaveAndRun} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {saving ? "Saving…" : "Save & Run"}
