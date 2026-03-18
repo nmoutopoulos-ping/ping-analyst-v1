@@ -22,12 +22,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await apiPost<{ ok: boolean; name: string; email: string }>("/crm/login", {
-        email,
-        api_key: apiKey,
-      });
-      if (res.ok) {
-        setAuth(apiKey, res.name, res.email);
+      const user = await supabaseLogin(email, apiKey);
+      if (user) {
+        setAuth(apiKey, user.name, user.email);
         navigate("/deals");
       } else {
         setError("Invalid credentials. Please try again.");

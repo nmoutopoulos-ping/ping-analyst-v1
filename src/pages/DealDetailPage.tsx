@@ -26,9 +26,9 @@ export default function DealDetailPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiGet<{ ok: boolean; deal: Deal }>(`/deals/${id}`)
-      .then((res) => {
-        if (res.deal) setDeal(res.deal);
+    supabaseGetDeal(id!, getApiKey()!)
+      .then((deal) => {
+        if (deal) setDeal(deal);
         else setError("Deal not found.");
       })
       .catch(() => setError("Failed to load deal."))

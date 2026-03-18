@@ -33,8 +33,8 @@ export default function DealsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiGet<{ ok: boolean; deals: Deal[] }>("/deals")
-      .then((res) => setDeals(res.deals || []))
+    supabaseGetDeals(getApiKey()!)
+      .then((deals) => setDeals(deals))
       .catch(() => setError("Failed to load deals."))
       .finally(() => setLoading(false));
   }, []);

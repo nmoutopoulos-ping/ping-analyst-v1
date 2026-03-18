@@ -128,8 +128,10 @@ export default function AnalysisPage() {
 
   const confirmDelete = async () => {
     if (!deleteId) return;
-    await apiDelete(`/crm/templates/${deleteId}`);
+    await supabaseDeleteTemplate(deleteId);
     setDeleteId(null);
+    fetchTemplates();
+  };
     fetchTemplates();
   };
 
