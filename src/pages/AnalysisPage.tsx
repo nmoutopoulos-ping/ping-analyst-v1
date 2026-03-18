@@ -109,10 +109,17 @@ export default function AnalysisPage() {
   const handleSaveAndRun = async (data: Partial<Template> & { assumption_template_id?: string }) => {
     const { assumption_template_id, ...templateData } = data as Record<string, unknown>;
     const body = { ...templateData, api_key: getApiKey() } as Record<string, unknown>;
-    const res = await supabaseCreateTemplate(body);
-    if (res?.id) {
+    let templateId: string | undefined;
+    if (editingTemplate) {
+      await supabaseUpdateTemplate(editingTemplate.id, body);
+      templateId = editingTemplate.id;
+    } else {
+      const res = await supabaseCreateTemplate(body);
+      templateId = res?.id;
+    }
+    if (templateId) {
       const { apiPost } = await import("@/lib/api");
-      const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: res.id };
+      const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: templateId };
       if (assumption_template_id) analyzeBody.assumption_template_id = assumption_template_id;
       await apiPost("/crm/analyze", analyzeBody);
     }
@@ -310,7 +317,7 @@ export default function AnalysisPage() {
         template={editingTemplate}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
-        onSaveAndRun={!editingTemplate ? handleSaveAndRun : undefined}
+        onSaveAndRun={handleSaveAndRun}
       />
 
       {/* Delete confirmation */}
