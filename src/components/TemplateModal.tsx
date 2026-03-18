@@ -8,7 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Template, UnitCombo, CommercialSpace } from "@/lib/types";
+import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate } from "@/lib/types";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetAssumptionTemplates } from "@/lib/supabase";
 
 const UNIT_ROWS = [
   { label: "Studio", bed: 0 },
