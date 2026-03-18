@@ -240,9 +240,14 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground">PROPERTY ADDRESS *</Label>
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, Austin TX" />
+                  <Input value={address} onChange={(e) => handleAddressChange(e.target.value)} placeholder="123 Main St, Austin TX" />
                 </div>
-                {(lat != null && lng != null) && (
+                {geocoding && (
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Geocoding…
+                  </div>
+                )}
+                {!geocoding && lat != null && lng != null && (
                   <div className="rounded-lg bg-emerald-50 px-3 py-2 font-mono text-xs text-emerald-700">
                     {lat.toFixed(6)}, {lng.toFixed(6)}
                   </div>
