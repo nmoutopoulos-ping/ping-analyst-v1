@@ -39,7 +39,7 @@ function normalizeDeal(row: Record<string, unknown>): Deal {
       sqft: f(row.sqft),
       total_units: i(row.total_units),
       radius: f(row.radius),
-      combos: (row.combos as unknown[]) || [],
+      combos: (row.combos as { bed: number; bath: number; units: number }[]) || [],
     },
     results: undefined,
     excel_path: row.excel_path ? String(row.excel_path) : undefined,
