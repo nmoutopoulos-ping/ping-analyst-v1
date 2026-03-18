@@ -326,15 +326,21 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs font-semibold text-muted-foreground">PRICE (optional)</Label>
-                    <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                      <Input className="pl-7" value={price} onChange={(e) => setPrice(formatUSD(e.target.value))} placeholder="0" />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs font-semibold text-muted-foreground">IMPROVEMENTS (optional)</Label>
-                    <Input type="number" value={improvements} onChange={(e) => setImprovements(e.target.value)} placeholder="0" />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                      <Input className="pl-7" value={improvements} onChange={(e) => setImprovements(formatUSD(e.target.value))} placeholder="0" />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs font-semibold text-muted-foreground">BUILDING SQFT (optional)</Label>
-                    <Input type="number" value={sqft} onChange={(e) => setSqft(e.target.value)} placeholder="0" />
+                    <Input value={sqft} onChange={(e) => setSqft(formatUSD(e.target.value))} placeholder="0" />
                   </div>
                 </div>
               </div>
