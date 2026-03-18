@@ -58,12 +58,12 @@ export default function AnalysisPage() {
 
   const fetchTemplates = () => {
     setLoading(true);
-    apiGet<{ ok: boolean; templates: Template[] }>("/crm/templates")
-      .then((res) => {
-        setTemplates(res.templates || []);
+    supabaseGetTemplates(getApiKey()!)
+      .then((data: Template[]) => {
+        setTemplates(data || []);
         setError("");
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         if (err.message.includes("404")) {
           setTemplates([]);
           setError("");
