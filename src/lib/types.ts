@@ -79,3 +79,12 @@ export interface Template {
   status?: string;
   created_at?: string;
 }
+
+export interface AssumptionTemplate {
+  id: string;
+  api_key?: string;
+  name: string;
+  assumptions: Assumptions;
+  is_default: boolean;
+  created_at?: string;
+}

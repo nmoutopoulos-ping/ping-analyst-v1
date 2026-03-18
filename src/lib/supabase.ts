@@ -1,4 +1,4 @@
-import type { Deal } from "./types";
+import type { Deal, AssumptionTemplate, Assumptions } from "./types";
 
 const SB_URL =
   import.meta.env.VITE_SUPABASE_URL ||
