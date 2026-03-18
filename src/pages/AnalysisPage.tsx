@@ -274,18 +274,28 @@ export default function AnalysisPage() {
                   </div>
                 )}
 
-                {/* Edit button */}
-                <div className="mt-4 pt-3 border-t border-border">
+                {/* Action buttons */}
+                <div className="mt-4 pt-3 border-t border-border flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="flex-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       openEdit(t);
                     }}
                   >
                     Edit Template
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRunTemplate(t);
+                    }}
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1" /> Run
                   </Button>
                 </div>
               </div>
