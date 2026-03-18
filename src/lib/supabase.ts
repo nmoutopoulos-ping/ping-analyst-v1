@@ -67,7 +67,7 @@ export async function supabaseLogin(
 
 export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   const r = await fetch(
-    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.false&select=${DS}&order=created_at.desc`,
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.false&select=${DS_LIST}&order=created_at.desc`,
     { headers: H }
   );
   if (!r.ok) throw new Error("Failed to fetch deals");
