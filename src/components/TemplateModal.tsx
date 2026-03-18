@@ -89,6 +89,18 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   };
 
   useEffect(() => {
+    if (open) {
+      supabaseGetAssumptionTemplates(getApiKey()!)
+        .then((tpls) => {
+          setAssumptionTemplates(tpls);
+          const def = tpls.find((t) => t.is_default);
+          if (def) setSelectedAssumptionId(def.id);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (template) {
       setName(template.name || "");
       setAddress(template.address || "");
