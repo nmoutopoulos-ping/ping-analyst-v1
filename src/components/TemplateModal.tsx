@@ -185,7 +185,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     } as Partial<Template> & { assumption_template_id?: string };
   };
 
-  const [validationError, setValidationError] = useState("");
+
 
   const validate = (): boolean => {
     if (!address.trim()) {
