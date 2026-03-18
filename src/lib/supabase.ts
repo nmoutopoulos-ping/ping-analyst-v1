@@ -20,7 +20,7 @@ const i = (v: unknown) =>
   v != null && v !== "" ? parseInt(String(v), 10) : undefined;
 
 const DS =
-  "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,status,created_at,preset_name";
+  "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,excel_data,docx_data,results,status,created_at,preset_name";
 
 function normalizeDeal(row: Record<string, unknown>): Deal {
   return {
@@ -41,7 +41,9 @@ function normalizeDeal(row: Record<string, unknown>): Deal {
       radius: f(row.radius),
       combos: (row.combos as { bed: number; bath: number; units: number }[]) || [],
     },
-    results: undefined,
+    results: (row.results as Deal["results"]) || null,
+    excel_data: (row.excel_data as unknown) || null,
+    docx_data: (row.docx_data as unknown) || null,
     excel_path: row.excel_path ? String(row.excel_path) : undefined,
     docx_path: row.docx_path ? String(row.docx_path) : undefined,
   };
@@ -125,4 +127,26 @@ export async function supabaseDeleteTemplate(id: string) {
     headers: H,
   });
   if (!r.ok) throw new Error("Failed to delete template");
+}
+
+export async function supabaseGetSettings(apiKey: string) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/users?api_key=eq.${encodeURIComponent(apiKey)}&select=assumptions&limit=1`,
+    { headers: H }
+  );
+  if (!r.ok) throw new Error("Failed to fetch settings");
+  const d = await r.json();
+  return { assumptions: (d[0]?.assumptions) || {} };
+}
+
+export async function supabaseUpdateSettings(apiKey: string, assumptions: Record<string, unknown>) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/users?api_key=eq.${encodeURIComponent(apiKey)}`,
+    {
+      method: "PATCH",
+      headers: { ...H, Prefer: "return=representation" },
+      body: JSON.stringify({ assumptions }),
+    }
+  );
+  if (!r.ok) throw new Error("Failed to save settings");
 }
