@@ -141,6 +141,69 @@ export async function supabaseArchiveDeal(searchId: string) {
   if (!r.ok) throw new Error("Failed to archive deal");
 }
 
+// ── Assumption Templates ──
+
+export async function supabaseGetAssumptionTemplates(apiKey: string): Promise<AssumptionTemplate[]> {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/assumption_templates?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc`,
+    { headers: H }
+  );
+  if (!r.ok) throw new Error("Failed to fetch assumption templates");
+  return r.json();
+}
+
+export async function supabaseCreateAssumptionTemplate(
+  apiKey: string,
+  name: string,
+  assumptions: Assumptions,
+  isDefault: boolean
+): Promise<AssumptionTemplate> {
+  // If setting as default, clear other defaults first
+  if (isDefault) {
+    await fetch(
+      `${SB_URL}/rest/v1/assumption_templates?api_key=eq.${encodeURIComponent(apiKey)}&is_default=eq.true`,
+      { method: "PATCH", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify({ is_default: false }) }
+    );
+  }
+  const r = await fetch(`${SB_URL}/rest/v1/assumption_templates`, {
+    method: "POST",
+    headers: { ...H, Prefer: "return=representation" },
+    body: JSON.stringify({ api_key: apiKey, name, assumptions, is_default: isDefault }),
+  });
+  if (!r.ok) throw new Error("Failed to create assumption template");
+  const d = await r.json();
+  return d[0];
+}
+
+export async function supabaseUpdateAssumptionTemplate(
+  id: string,
+  apiKey: string,
+  data: { name?: string; assumptions?: Assumptions; is_default?: boolean }
+): Promise<AssumptionTemplate> {
+  if (data.is_default) {
+    await fetch(
+      `${SB_URL}/rest/v1/assumption_templates?api_key=eq.${encodeURIComponent(apiKey)}&is_default=eq.true`,
+      { method: "PATCH", headers: { ...H, Prefer: "return=representation" }, body: JSON.stringify({ is_default: false }) }
+    );
+  }
+  const r = await fetch(`${SB_URL}/rest/v1/assumption_templates?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { ...H, Prefer: "return=representation" },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Failed to update assumption template");
+  const d = await r.json();
+  return d[0];
+}
+
+export async function supabaseDeleteAssumptionTemplate(id: string) {
+  const r = await fetch(`${SB_URL}/rest/v1/assumption_templates?id=eq.${id}`, {
+    method: "DELETE",
+    headers: H,
+  });
+  if (!r.ok) throw new Error("Failed to delete assumption template");
+}
+
 export async function supabaseGetSettings(apiKey: string) {
   const r = await fetch(
     `${SB_URL}/rest/v1/users?api_key=eq.${encodeURIComponent(apiKey)}&select=assumptions&limit=1`,
