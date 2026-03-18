@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
 import { apiPost, setAuth } from "@/lib/api";
 
 export default function LoginPage() {
+  // Warm up the Render server as soon as the login page loads
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || "https://analyst-ra00.onrender.com"}/health`)
+      .catch(() => {}); // fire-and-forget, ignore errors
+  }, []);
+
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [apiKey, setApiKey] = useState("");
