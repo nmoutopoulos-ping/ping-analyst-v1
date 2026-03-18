@@ -190,6 +190,10 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
 
 
   const validate = (): boolean => {
+    if (!name.trim()) {
+      setValidationError("Name is required.");
+      return false;
+    }
     if (!address.trim()) {
       setValidationError("Address is required.");
       return false;
