@@ -181,6 +181,42 @@ export default function DealDetailPage() {
               <div className="mt-3">
                 <StageBadge stage={deal.stage} />
               </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    disabled={archiving}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Archive className="h-4 w-4" /> {archiving ? "Archiving…" : "Archive Deal"}
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Archive this deal?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      It will be hidden from your board.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => {
+                        setArchiving(true);
+                        try {
+                          await supabaseArchiveDeal(deal.search_id);
+                          navigate("/deals");
+                        } catch {
+                          setArchiving(false);
+                        }
+                      }}
+                    >
+                      Archive
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

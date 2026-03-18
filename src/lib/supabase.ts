@@ -129,6 +129,18 @@ export async function supabaseDeleteTemplate(id: string) {
   if (!r.ok) throw new Error("Failed to delete template");
 }
 
+export async function supabaseArchiveDeal(searchId: string) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}`,
+    {
+      method: "PATCH",
+      headers: { ...H, Prefer: "return=representation" },
+      body: JSON.stringify({ archived: true }),
+    }
+  );
+  if (!r.ok) throw new Error("Failed to archive deal");
+}
+
 export async function supabaseGetSettings(apiKey: string) {
   const r = await fetch(
     `${SB_URL}/rest/v1/users?api_key=eq.${encodeURIComponent(apiKey)}&select=assumptions&limit=1`,
