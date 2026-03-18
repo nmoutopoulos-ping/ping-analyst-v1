@@ -33,6 +33,8 @@ export interface Deal {
   };
   excel_path?: string;
   docx_path?: string;
+  excel_data?: unknown;
+  docx_data?: unknown;
 }
 
 export interface Assumptions {
