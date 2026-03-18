@@ -25,10 +25,9 @@ export default function DealDetailPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiGet<{ ok: boolean; deals: Deal[] }>("/deals")
+    apiGet<{ ok: boolean; deal: Deal }>(`/deals/${id}`)
       .then((res) => {
-        const found = res.deals?.find((d) => d.search_id === id);
-        if (found) setDeal(found);
+        if (res.deal) setDeal(res.deal);
         else setError("Deal not found.");
       })
       .catch(() => setError("Failed to load deal."))
