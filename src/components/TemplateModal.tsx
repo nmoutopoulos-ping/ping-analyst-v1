@@ -184,7 +184,27 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     } as Partial<Template> & { assumption_template_id?: string };
   };
 
+  const [validationError, setValidationError] = useState("");
+
+  const validate = (): boolean => {
+    if (!address.trim()) {
+      setValidationError("Address is required.");
+      return false;
+    }
+    if (selectedCombos.size === 0) {
+      setValidationError("Select at least one unit type.");
+      return false;
+    }
+    if (totalUnits === 0) {
+      setValidationError("Total units must be greater than 0.");
+      return false;
+    }
+    setValidationError("");
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validate()) return;
     setSaving(true);
     try {
       await onSave(buildData());
@@ -195,6 +215,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
 
   const handleSaveAndRun = async () => {
     if (!onSaveAndRun) return;
+    if (!validate()) return;
     setSaving(true);
     try {
       await onSaveAndRun(buildData());
