@@ -81,3 +81,47 @@ export async function supabaseGetDeal(
   const d = (await r.json()) as Record<string, unknown>[];
   return d.length > 0 ? normalizeDeal(d[0]) : null;
 }
+
+export async function supabaseGetTemplates(apiKey: string) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/templates?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc`,
+    { headers: H }
+  );
+  if (!r.ok) throw new Error("Failed to fetch templates");
+  return r.json();
+}
+
+export async function supabaseCreateTemplate(
+  data: Record<string, unknown>
+) {
+  const r = await fetch(`${SB_URL}/rest/v1/templates`, {
+    method: "POST",
+    headers: { ...H, Prefer: "return=representation" },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Failed to create template");
+  const d = await r.json();
+  return d[0];
+}
+
+export async function supabaseUpdateTemplate(
+  id: string,
+  data: Record<string, unknown>
+) {
+  const r = await fetch(`${SB_URL}/rest/v1/templates?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { ...H, Prefer: "return=representation" },
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error("Failed to update template");
+  const d = await r.json();
+  return d[0];
+}
+
+export async function supabaseDeleteTemplate(id: string) {
+  const r = await fetch(`${SB_URL}/rest/v1/templates?id=eq.${id}`, {
+    method: "DELETE",
+    headers: H,
+  });
+  if (!r.ok) throw new Error("Failed to delete template");
+}
