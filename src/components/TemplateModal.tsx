@@ -139,6 +139,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setMaxComps("");
       setCommercialEnabled(false);
       setCommercialSpaces([]);
+      setSelectedAssumptionId("");
+      setValidationError("");
     }
   }, [template, open]);
 

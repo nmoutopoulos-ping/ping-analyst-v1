@@ -49,7 +49,9 @@ export async function apiPatch<T>(path: string, body: Record<string, unknown>): 
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  if (res.status === 204) return {} as T;
+  const text = await res.text();
+  return text ? JSON.parse(text) : ({} as T);
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
