@@ -26,7 +26,7 @@ function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num
   return val.toLocaleString();
 }
 
-const STAGES = ["New", "Active", "Under Review", "Closed"];
+const STAGES = ["New", "Review", "Offer", "Contract", "Closed", "Pass"];
 
 export default function DealDetailPage() {
   const { id } = useParams<{ id: string }>();
