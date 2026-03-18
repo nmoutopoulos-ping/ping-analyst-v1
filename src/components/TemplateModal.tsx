@@ -50,6 +50,39 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [commercialEnabled, setCommercialEnabled] = useState(false);
   const [commercialSpaces, setCommercialSpaces] = useState<CommercialSpace[]>([]);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const geocodeAddress = useCallback(async (addr: string) => {
+    if (addr.trim().length < 5) return;
+    setGeocoding(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`,
+        { headers: { "User-Agent": "PingAnalyst/3.0" } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setLat(parseFloat(data[0].lat));
+        setLng(parseFloat(data[0].lon));
+      } else {
+        setLat(undefined);
+        setLng(undefined);
+      }
+    } catch {
+      // geocode failed silently
+    } finally {
+      setGeocoding(false);
+    }
+  }, []);
+
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    setLat(undefined);
+    setLng(undefined);
+    if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
+    geocodeTimer.current = setTimeout(() => geocodeAddress(value), 800);
+  };
 
   useEffect(() => {
     if (template) {
