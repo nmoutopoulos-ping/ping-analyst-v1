@@ -9,9 +9,11 @@ import StageBadge from "@/components/StageBadge";
 
 const COLUMNS = [
   { key: "New", label: "New", stages: ["New"] },
-  { key: "Active", label: "Active", stages: ["Active", "Review"] },
-  { key: "Under Review", label: "Under Review", stages: ["Under Review", "Offer", "Contract"] },
-  { key: "Closed", label: "Closed", stages: ["Closed", "Pass"] },
+  { key: "Review", label: "Review", stages: ["Review"] },
+  { key: "Offer", label: "Offer", stages: ["Offer"] },
+  { key: "Contract", label: "Contract", stages: ["Contract"] },
+  { key: "Closed", label: "Closed", stages: ["Closed"] },
+  { key: "Pass", label: "Pass", stages: ["Pass"] },
 ];
 
 function formatDate(iso: string) {
