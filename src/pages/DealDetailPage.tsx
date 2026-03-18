@@ -89,11 +89,13 @@ export default function DealDetailPage() {
         </p>
 
         {/* Metric cards */}
-        <div className="mt-6 grid grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-5 gap-4">
           {[
             { label: "Avg COC", value: fmt(r?.coc, "pct") },
             { label: "MOIC", value: fmt(r?.moic, "mult") },
             { label: "IRR", value: fmt(r?.irr, "pct") },
+            { label: "Cap Rate", value: fmt(r?.cap_rate, "pct") },
+            { label: "NOI", value: fmt(r?.noi, "usd") },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <div className="label-uppercase">{item.label}</div>
