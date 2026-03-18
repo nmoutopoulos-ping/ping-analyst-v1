@@ -123,15 +123,11 @@ export default function AnalysisPage() {
     await supabaseCreateTemplate({ ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
     fetchTemplates();
   };
-    fetchTemplates();
-  };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
     await supabaseDeleteTemplate(deleteId);
     setDeleteId(null);
-    fetchTemplates();
-  };
     fetchTemplates();
   };
 
