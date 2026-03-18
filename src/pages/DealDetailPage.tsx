@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
-import StageBadge from "@/components/StageBadge";
+
 
 function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num") {
   if (val == null) return "—";
