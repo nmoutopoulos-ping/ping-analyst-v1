@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Settings, MapPin } from "lucide-react";
-import { apiGet } from "@/lib/api";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetDeals } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 import StageBadge from "@/components/StageBadge";
@@ -32,8 +33,8 @@ export default function DealsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiGet<{ ok: boolean; deals: Deal[] }>("/deals")
-      .then((res) => setDeals(res.deals || []))
+    supabaseGetDeals(getApiKey()!)
+      .then((deals) => setDeals(deals))
       .catch(() => setError("Failed to load deals."))
       .finally(() => setLoading(false));
   }, []);

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, MapPin, Calendar } from "lucide-react";
-import { apiGet, apiPatch, getApiKey, getDownloadUrl } from "@/lib/api";
+import { apiPatch, getApiKey, getDownloadUrl } from "@/lib/api";
+import { supabaseGetDeal } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 import StageBadge from "@/components/StageBadge";
@@ -25,9 +26,9 @@ export default function DealDetailPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    apiGet<{ ok: boolean; deal: Deal }>(`/deals/${id}`)
-      .then((res) => {
-        if (res.deal) setDeal(res.deal);
+    supabaseGetDeal(id!, getApiKey()!)
+      .then((deal) => {
+        if (deal) setDeal(deal);
         else setError("Deal not found.");
       })
       .catch(() => setError("Failed to load deal."))

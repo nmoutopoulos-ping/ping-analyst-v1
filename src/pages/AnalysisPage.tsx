@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, MoreVertical, MapPin } from "lucide-react";
-import { apiGet, apiPost, apiPatch, apiDelete, getApiKey } from "@/lib/api";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 import TemplateModal from "@/components/TemplateModal";
@@ -57,12 +58,12 @@ export default function AnalysisPage() {
 
   const fetchTemplates = () => {
     setLoading(true);
-    apiGet<{ ok: boolean; templates: Template[] }>("/crm/templates")
-      .then((res) => {
-        setTemplates(res.templates || []);
+    supabaseGetTemplates(getApiKey()!)
+      .then((data: Template[]) => {
+        setTemplates(data || []);
         setError("");
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         if (err.message.includes("404")) {
           setTemplates([]);
           setError("");
@@ -94,21 +95,23 @@ export default function AnalysisPage() {
   };
 
   const handleSave = async (data: Partial<Template>) => {
-    const body = { ...data, api_key: getApiKey() };
+    const body = { ...data, api_key: getApiKey() } as Record<string, unknown>;
     if (editingTemplate) {
-      await apiPatch(`/crm/templates/${editingTemplate.id}`, body as Record<string, unknown>);
+      await supabaseUpdateTemplate(editingTemplate.id, body);
     } else {
-      await apiPost("/crm/templates", body as Record<string, unknown>);
+      await supabaseCreateTemplate(body);
     }
     setModalOpen(false);
     fetchTemplates();
   };
 
   const handleSaveAndRun = async (data: Partial<Template>) => {
-    const body = { ...data, api_key: getApiKey() };
-    const res = await apiPost<{ ok: boolean; template_id: string }>("/crm/templates", body as Record<string, unknown>);
-    if (res.template_id) {
-      await apiPost("/crm/analyze", { api_key: getApiKey(), template_id: res.template_id } as Record<string, unknown>);
+    const body = { ...data, api_key: getApiKey() } as Record<string, unknown>;
+    const res = await supabaseCreateTemplate(body);
+    if (res?.id) {
+      // Analysis still goes to Render
+      const { apiPost } = await import("@/lib/api");
+      await apiPost("/crm/analyze", { api_key: getApiKey(), template_id: res.id } as Record<string, unknown>);
     }
     setModalOpen(false);
     toast({ title: "Analysis running", description: "Results will appear in Deals." });
@@ -117,13 +120,13 @@ export default function AnalysisPage() {
 
   const handleDuplicate = async (t: Template) => {
     const { id, ...rest } = t;
-    await apiPost("/crm/templates", { ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
+    await supabaseCreateTemplate({ ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
     fetchTemplates();
   };
 
   const confirmDelete = async () => {
     if (!deleteId) return;
-    await apiDelete(`/crm/templates/${deleteId}`);
+    await supabaseDeleteTemplate(deleteId);
     setDeleteId(null);
     fetchTemplates();
   };

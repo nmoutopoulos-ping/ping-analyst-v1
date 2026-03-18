@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
-import { apiPost, setAuth } from "@/lib/api";
+import { setAuth } from "@/lib/api";
+import { supabaseLogin } from "@/lib/supabase";
 
 export default function LoginPage() {
   // Warm up the Render server as soon as the login page loads
@@ -21,12 +22,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await apiPost<{ ok: boolean; name: string; email: string }>("/crm/login", {
-        email,
-        api_key: apiKey,
-      });
-      if (res.ok) {
-        setAuth(apiKey, res.name, res.email);
+      const user = await supabaseLogin(email, apiKey);
+      if (user) {
+        setAuth(apiKey, user.name, user.email);
         navigate("/deals");
       } else {
         setError("Invalid credentials. Please try again.");
