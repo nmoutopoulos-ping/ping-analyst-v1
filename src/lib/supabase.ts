@@ -128,3 +128,25 @@ export async function supabaseDeleteTemplate(id: string) {
   });
   if (!r.ok) throw new Error("Failed to delete template");
 }
+
+export async function supabaseGetSettings(apiKey: string) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/users?api_key=eq.${encodeURIComponent(apiKey)}&select=assumptions&limit=1`,
+    { headers: H }
+  );
+  if (!r.ok) throw new Error("Failed to fetch settings");
+  const d = await r.json();
+  return { assumptions: (d[0]?.assumptions) || {} };
+}
+
+export async function supabaseUpdateSettings(apiKey: string, assumptions: Record<string, unknown>) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/users?api_key=eq.${encodeURIComponent(apiKey)}`,
+    {
+      method: "PATCH",
+      headers: { ...H, Prefer: "return=representation" },
+      body: JSON.stringify({ assumptions }),
+    }
+  );
+  if (!r.ok) throw new Error("Failed to save settings");
+}
