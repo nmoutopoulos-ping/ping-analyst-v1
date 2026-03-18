@@ -94,8 +94,9 @@ export default function AnalysisPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async (data: Partial<Template>) => {
-    const body = { ...data, api_key: getApiKey() } as Record<string, unknown>;
+  const handleSave = async (data: Partial<Template> & { assumption_template_id?: string }) => {
+    const { assumption_template_id, ...templateData } = data as Record<string, unknown>;
+    const body = { ...templateData, api_key: getApiKey() } as Record<string, unknown>;
     if (editingTemplate) {
       await supabaseUpdateTemplate(editingTemplate.id, body);
     } else {

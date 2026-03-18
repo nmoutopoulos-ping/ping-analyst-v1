@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { X, Plus, Trash2, Loader2 } from "lucide-react";
+import { X, Plus, Trash2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,31 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate } from "@/lib/types";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetAssumptionTemplates } from "@/lib/supabase";
+
+function formatUSD(value: string): string {
+  const num = value.replace(/[^0-9]/g, "");
+  if (!num) return "";
+  return Number(num).toLocaleString("en-US");
+}
+
+function parseUSD(formatted: string): string {
+  return formatted.replace(/[^0-9]/g, "");
+}
+
+const ASSUMPTION_LABELS: Record<string, string> = {
+  ltv: "LTV",
+  closing_pct: "Closing Cost %",
+  vacancy: "Vacancy",
+  opex_ratio: "OpEx Ratio",
+  int_rate: "Interest Rate",
+  rent_growth_1: "Yr 1 Rent Growth",
+  other_inc_mo: "Other Monthly Inc",
+};
+
+function formatAssumptionValue(key: string, val: number): string {
+  if (key === "other_inc_mo") return `$${val.toLocaleString("en-US")}`;
+  return `${(val * 100).toFixed(1)}%`;
+}
 
 const UNIT_ROWS = [
   { label: "Studio", bed: 0 },
@@ -57,6 +82,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [assumptionTemplates, setAssumptionTemplates] = useState<AssumptionTemplate[]>([]);
   const [selectedAssumptionId, setSelectedAssumptionId] = useState<string>("");
   const [validationError, setValidationError] = useState("");
+  const [showAssumptionDetails, setShowAssumptionDetails] = useState(false);
 
   const geocodeAddress = useCallback(async (addr: string) => {
     if (addr.trim().length < 5) return;
@@ -107,9 +133,9 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setAddress(template.address || "");
       setLat(template.lat);
       setLng(template.lng);
-      setPrice(template.price?.toString() || "");
-      setImprovements(template.improvements?.toString() || "");
-      setSqft(template.sqft?.toString() || "");
+      setPrice(template.price ? formatUSD(template.price.toString()) : "");
+      setImprovements(template.improvements ? formatUSD(template.improvements.toString()) : "");
+      setSqft(template.sqft ? formatUSD(template.sqft.toString()) : "");
       setRadius(template.radius?.toString() || "0.5");
       setMinComps(template.min_comps?.toString() || "");
       setMaxComps(template.max_comps?.toString() || "");
@@ -174,9 +200,9 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       address,
       lat,
       lng,
-      price: price ? Number(price) : undefined,
-      improvements: improvements ? Number(improvements) : undefined,
-      sqft: sqft ? Number(sqft) : undefined,
+      price: price ? Number(parseUSD(price)) : undefined,
+      improvements: improvements ? Number(parseUSD(improvements)) : undefined,
+      sqft: sqft ? Number(parseUSD(sqft)) : undefined,
       combos,
       total_units: totalUnits,
       radius: radius ? Number(radius) : undefined,
@@ -300,15 +326,21 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs font-semibold text-muted-foreground">PRICE (optional)</Label>
-                    <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0" />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                      <Input className="pl-7" value={price} onChange={(e) => setPrice(formatUSD(e.target.value))} placeholder="0" />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs font-semibold text-muted-foreground">IMPROVEMENTS (optional)</Label>
-                    <Input type="number" value={improvements} onChange={(e) => setImprovements(e.target.value)} placeholder="0" />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                      <Input className="pl-7" value={improvements} onChange={(e) => setImprovements(formatUSD(e.target.value))} placeholder="0" />
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs font-semibold text-muted-foreground">BUILDING SQFT (optional)</Label>
-                    <Input type="number" value={sqft} onChange={(e) => setSqft(e.target.value)} placeholder="0" />
+                    <Input value={sqft} onChange={(e) => setSqft(formatUSD(e.target.value))} placeholder="0" />
                   </div>
                 </div>
               </div>
@@ -382,7 +414,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
 
             <section>
               <h3 className="label-uppercase mb-3">Assumptions</h3>
-              <Select value={selectedAssumptionId} onValueChange={setSelectedAssumptionId}>
+              <Select value={selectedAssumptionId} onValueChange={(v) => { setSelectedAssumptionId(v); setShowAssumptionDetails(false); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Use default settings" />
                 </SelectTrigger>
@@ -395,11 +427,31 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                   ))}
                 </SelectContent>
               </Select>
-              {selectedAssumptionId && selectedAssumptionId !== "__default__" && (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  These assumptions will be used for this analysis run.
-                </p>
-              )}
+              {selectedAssumptionId && selectedAssumptionId !== "__default__" && (() => {
+                const selected = assumptionTemplates.find((t) => t.id === selectedAssumptionId);
+                return (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAssumptionDetails(!showAssumptionDetails)}
+                      className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      {showAssumptionDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {showAssumptionDetails ? "Hide details" : "View details"}
+                    </button>
+                    {showAssumptionDetails && selected?.assumptions && (
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                        {Object.entries(selected.assumptions).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">{ASSUMPTION_LABELS[key] || key}</span>
+                            <span className="font-medium text-foreground">{formatAssumptionValue(key, val as number)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </section>
 
             {/* Section 4: Search Parameters */}
