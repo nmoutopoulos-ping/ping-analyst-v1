@@ -106,10 +106,12 @@ export default function AnalysisPage() {
   };
 
   const handleSaveAndRun = async (data: Partial<Template>) => {
-    const body = { ...data, api_key: getApiKey() };
-    const res = await apiPost<{ ok: boolean; template_id: string }>("/crm/templates", body as Record<string, unknown>);
-    if (res.template_id) {
-      await apiPost("/crm/analyze", { api_key: getApiKey(), template_id: res.template_id } as Record<string, unknown>);
+    const body = { ...data, api_key: getApiKey() } as Record<string, unknown>;
+    const res = await supabaseCreateTemplate(body);
+    if (res?.id) {
+      // Analysis still goes to Render
+      const { apiPost } = await import("@/lib/api");
+      await apiPost("/crm/analyze", { api_key: getApiKey(), template_id: res.id } as Record<string, unknown>);
     }
     setModalOpen(false);
     toast({ title: "Analysis running", description: "Results will appear in Deals." });
