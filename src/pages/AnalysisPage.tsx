@@ -261,6 +261,13 @@ export default function AnalysisPage() {
                     </span>
                   </div>
                 )}
+
+                {/* Edit button */}
+                <div className="mt-4 pt-3 border-t border-border" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => openEdit(t)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
