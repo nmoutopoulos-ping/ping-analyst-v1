@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { X, Plus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,39 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [commercialEnabled, setCommercialEnabled] = useState(false);
   const [commercialSpaces, setCommercialSpaces] = useState<CommercialSpace[]>([]);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const geocodeAddress = useCallback(async (addr: string) => {
+    if (addr.trim().length < 5) return;
+    setGeocoding(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addr)}`,
+        { headers: { "User-Agent": "PingAnalyst/3.0" } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setLat(parseFloat(data[0].lat));
+        setLng(parseFloat(data[0].lon));
+      } else {
+        setLat(undefined);
+        setLng(undefined);
+      }
+    } catch {
+      // geocode failed silently
+    } finally {
+      setGeocoding(false);
+    }
+  }, []);
+
+  const handleAddressChange = (value: string) => {
+    setAddress(value);
+    setLat(undefined);
+    setLng(undefined);
+    if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
+    geocodeTimer.current = setTimeout(() => geocodeAddress(value), 800);
+  };
 
   useEffect(() => {
     if (template) {
@@ -207,9 +240,14 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs font-semibold text-muted-foreground">PROPERTY ADDRESS *</Label>
-                  <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, Austin TX" />
+                  <Input value={address} onChange={(e) => handleAddressChange(e.target.value)} placeholder="123 Main St, Austin TX" />
                 </div>
-                {(lat != null && lng != null) && (
+                {geocoding && (
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Geocoding…
+                  </div>
+                )}
+                {!geocoding && lat != null && lng != null && (
                   <div className="rounded-lg bg-emerald-50 px-3 py-2 font-mono text-xs text-emerald-700">
                     {lat.toFixed(6)}, {lng.toFixed(6)}
                   </div>
