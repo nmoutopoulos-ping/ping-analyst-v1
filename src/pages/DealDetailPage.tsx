@@ -35,6 +35,7 @@ export default function DealDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     supabaseGetDeal(id!, getApiKey()!)
