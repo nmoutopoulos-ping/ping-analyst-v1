@@ -82,6 +82,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [assumptionTemplates, setAssumptionTemplates] = useState<AssumptionTemplate[]>([]);
   const [selectedAssumptionId, setSelectedAssumptionId] = useState<string>("");
   const [validationError, setValidationError] = useState("");
+  const [showAssumptionDetails, setShowAssumptionDetails] = useState(false);
 
   const geocodeAddress = useCallback(async (addr: string) => {
     if (addr.trim().length < 5) return;
