@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, Download, MapPin, Calendar, Archive } from "lucide-react";
 import { apiPatch, getApiKey } from "@/lib/api";
-import { supabaseGetDeal } from "@/lib/supabase";
+import { supabaseGetDeal, supabaseArchiveDeal } from "@/lib/supabase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 import StageBadge from "@/components/StageBadge";
@@ -24,6 +35,7 @@ export default function DealDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     supabaseGetDeal(id!, getApiKey()!)
@@ -169,6 +181,42 @@ export default function DealDetailPage() {
               <div className="mt-3">
                 <StageBadge stage={deal.stage} />
               </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    disabled={archiving}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Archive className="h-4 w-4" /> {archiving ? "Archiving…" : "Archive Deal"}
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Archive this deal?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      It will be hidden from your board.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={async () => {
+                        setArchiving(true);
+                        try {
+                          await supabaseArchiveDeal(deal.search_id);
+                          navigate("/deals");
+                        } catch {
+                          setArchiving(false);
+                        }
+                      }}
+                    >
+                      Archive
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">

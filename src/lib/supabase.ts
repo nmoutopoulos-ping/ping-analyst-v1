@@ -20,7 +20,7 @@ const i = (v: unknown) =>
   v != null && v !== "" ? parseInt(String(v), 10) : undefined;
 
 const DS =
-  "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,excel_data,docx_data,results,status,created_at,preset_name";
+  "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,excel_data,docx_data,results,status,created_at,preset_name,archived";
 
 function normalizeDeal(row: Record<string, unknown>): Deal {
   return {
@@ -64,7 +64,7 @@ export async function supabaseLogin(
 
 export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   const r = await fetch(
-    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&select=${DS}&order=created_at.desc`,
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.false&select=${DS}&order=created_at.desc`,
     { headers: H }
   );
   if (!r.ok) throw new Error("Failed to fetch deals");
@@ -127,6 +127,18 @@ export async function supabaseDeleteTemplate(id: string) {
     headers: H,
   });
   if (!r.ok) throw new Error("Failed to delete template");
+}
+
+export async function supabaseArchiveDeal(searchId: string) {
+  const r = await fetch(
+    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}`,
+    {
+      method: "PATCH",
+      headers: { ...H, Prefer: "return=representation" },
+      body: JSON.stringify({ archived: true }),
+    }
+  );
+  if (!r.ok) throw new Error("Failed to archive deal");
 }
 
 export async function supabaseGetSettings(apiKey: string) {
