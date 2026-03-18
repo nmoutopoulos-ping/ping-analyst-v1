@@ -94,10 +94,11 @@ export async function supabaseGetTemplates(apiKey: string) {
 export async function supabaseCreateTemplate(
   data: Record<string, unknown>
 ) {
+  const email = localStorage.getItem("ping_user_email") || "";
   const r = await fetch(`${SB_URL}/rest/v1/templates`, {
     method: "POST",
     headers: { ...H, Prefer: "return=representation" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, email }),
   });
   if (!r.ok) throw new Error("Failed to create template");
   const d = await r.json();
