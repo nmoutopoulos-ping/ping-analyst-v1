@@ -8,7 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Template, UnitCombo, CommercialSpace } from "@/lib/types";
+import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate } from "@/lib/types";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetAssumptionTemplates } from "@/lib/supabase";
 
 const UNIT_ROWS = [
   { label: "Studio", bed: 0 },
@@ -52,6 +54,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [assumptionTemplates, setAssumptionTemplates] = useState<AssumptionTemplate[]>([]);
+  const [selectedAssumptionId, setSelectedAssumptionId] = useState<string>("");
 
   const geocodeAddress = useCallback(async (addr: string) => {
     if (addr.trim().length < 5) return;
@@ -83,6 +87,18 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
     geocodeTimer.current = setTimeout(() => geocodeAddress(value), 800);
   };
+
+  useEffect(() => {
+    if (open) {
+      supabaseGetAssumptionTemplates(getApiKey()!)
+        .then((tpls) => {
+          setAssumptionTemplates(tpls);
+          const def = tpls.find((t) => t.is_default);
+          if (def) setSelectedAssumptionId(def.id);
+        })
+        .catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (template) {
@@ -164,7 +180,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       min_comps: minComps ? Number(minComps) : undefined,
       max_comps: maxComps ? Number(maxComps) : undefined,
       commercial_spaces: commercialEnabled ? commercialSpaces : undefined,
-    };
+      assumption_template_id: selectedAssumptionId || undefined,
+    } as Partial<Template> & { assumption_template_id?: string };
   };
 
   const handleSave = async () => {
@@ -334,6 +351,28 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                 </div>
               </section>
             )}
+
+            {/* Assumption Template Picker */}
+            <section>
+              <h3 className="label-uppercase mb-3">Assumptions</h3>
+              <Select value={selectedAssumptionId} onValueChange={setSelectedAssumptionId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Use default assumptions" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assumptionTemplates.map((at) => (
+                    <SelectItem key={at.id} value={at.id}>
+                      {at.name} {at.is_default ? "⭐" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedAssumptionId && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  These assumptions will be used for this analysis run.
+                </p>
+              )}
+            </section>
 
             {/* Section 4: Search Parameters */}
             <section>
