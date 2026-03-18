@@ -133,9 +133,9 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setAddress(template.address || "");
       setLat(template.lat);
       setLng(template.lng);
-      setPrice(template.price?.toString() || "");
-      setImprovements(template.improvements?.toString() || "");
-      setSqft(template.sqft?.toString() || "");
+      setPrice(template.price ? formatUSD(template.price.toString()) : "");
+      setImprovements(template.improvements ? formatUSD(template.improvements.toString()) : "");
+      setSqft(template.sqft ? formatUSD(template.sqft.toString()) : "");
       setRadius(template.radius?.toString() || "0.5");
       setMinComps(template.min_comps?.toString() || "");
       setMaxComps(template.max_comps?.toString() || "");
