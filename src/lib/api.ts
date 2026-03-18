@@ -52,6 +52,16 @@ export async function apiPatch<T>(path: string, body: Record<string, unknown>): 
   return res.json();
 }
 
+export async function apiDelete<T>(path: string): Promise<T> {
+  const key = getApiKey();
+  const sep = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${API_BASE}${path}${sep}api_key=${key}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
 export function getDownloadUrl(searchId: string, type: "excel" | "docx"): string {
   const key = getApiKey();
   return `${API_BASE}/deals/${searchId}/download/${type}?api_key=${key}`;
