@@ -414,7 +414,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
 
             <section>
               <h3 className="label-uppercase mb-3">Assumptions</h3>
-              <Select value={selectedAssumptionId} onValueChange={setSelectedAssumptionId}>
+              <Select value={selectedAssumptionId} onValueChange={(v) => { setSelectedAssumptionId(v); setShowAssumptionDetails(false); }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Use default settings" />
                 </SelectTrigger>
@@ -427,11 +427,31 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                   ))}
                 </SelectContent>
               </Select>
-              {selectedAssumptionId && selectedAssumptionId !== "__default__" && (
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  These assumptions will be used for this analysis run.
-                </p>
-              )}
+              {selectedAssumptionId && selectedAssumptionId !== "__default__" && (() => {
+                const selected = assumptionTemplates.find((t) => t.id === selectedAssumptionId);
+                return (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAssumptionDetails(!showAssumptionDetails)}
+                      className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      {showAssumptionDetails ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      {showAssumptionDetails ? "Hide details" : "View details"}
+                    </button>
+                    {showAssumptionDetails && selected?.assumptions && (
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                        {Object.entries(selected.assumptions).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">{ASSUMPTION_LABELS[key] || key}</span>
+                            <span className="font-medium text-foreground">{formatAssumptionValue(key, val as number)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </section>
 
             {/* Section 4: Search Parameters */}
