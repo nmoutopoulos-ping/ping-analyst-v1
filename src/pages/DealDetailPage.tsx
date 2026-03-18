@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, MapPin, Calendar, Archive } from "lucide-react";
-import { apiPatch, getApiKey } from "@/lib/api";
-import { supabaseGetDeal, supabaseArchiveDeal } from "@/lib/supabase";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -53,10 +53,7 @@ export default function DealDetailPage() {
     if (!deal) return;
     setSaving(true);
     try {
-      await apiPatch(`/deals/${deal.search_id}/stage`, {
-        api_key: getApiKey(),
-        stage: newStage,
-      });
+      await supabaseUpdateDealStage(deal.search_id, newStage);
       setDeal({ ...deal, stage: newStage });
       toast({ title: "Stage updated", description: `Deal moved to ${newStage}.` });
     } catch {
