@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Save, Check } from "lucide-react";
-import { apiGet, apiPatch, getApiKey } from "@/lib/api";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetSettings, supabaseUpdateSettings } from "@/lib/supabase";
 import { Assumptions } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 
@@ -22,8 +23,8 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiGet<{ ok: boolean; assumptions: Assumptions }>("/settings")
-      .then((res) => setValues(res.assumptions))
+    supabaseGetSettings(getApiKey()!)
+      .then((res) => setValues(res.assumptions as Assumptions))
       .catch(() => setError("Failed to load settings."))
       .finally(() => setLoading(false));
   }, []);
@@ -33,7 +34,7 @@ export default function SettingsPage() {
     setSaving(true);
     setSaved(false);
     try {
-      await apiPatch("/settings", { api_key: getApiKey(), assumptions: values });
+      await supabaseUpdateSettings(getApiKey()!, values as unknown as Record<string, unknown>);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
