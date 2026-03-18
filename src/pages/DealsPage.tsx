@@ -9,9 +9,11 @@ import StageBadge from "@/components/StageBadge";
 
 const COLUMNS = [
   { key: "New", label: "New", stages: ["New"] },
-  { key: "Active", label: "Active", stages: ["Active", "Review"] },
-  { key: "Under Review", label: "Under Review", stages: ["Under Review", "Offer", "Contract"] },
-  { key: "Closed", label: "Closed", stages: ["Closed", "Pass"] },
+  { key: "Review", label: "Review", stages: ["Review"] },
+  { key: "Offer", label: "Offer", stages: ["Offer"] },
+  { key: "Contract", label: "Contract", stages: ["Contract"] },
+  { key: "Closed", label: "Closed", stages: ["Closed"] },
+  { key: "Pass", label: "Pass", stages: ["Pass"] },
 ];
 
 function formatDate(iso: string) {
@@ -70,7 +72,7 @@ export default function DealsPage() {
         {error && <p className="mt-8 text-sm text-destructive">{error}</p>}
 
         {!loading && !error && (
-          <div className="mt-8 grid grid-cols-4 gap-4">
+          <div className="mt-8 grid grid-cols-6 gap-4">
             {COLUMNS.map((col) => {
               const colDeals = filtered.filter((d) => col.stages.includes(d.stage));
               return (

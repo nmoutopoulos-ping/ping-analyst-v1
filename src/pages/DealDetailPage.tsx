@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, MapPin, Calendar, Archive } from "lucide-react";
 import { apiPatch, getApiKey } from "@/lib/api";
 import { supabaseGetDeal, supabaseArchiveDeal } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,7 @@ function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num
   return val.toLocaleString();
 }
 
-const STAGES = ["New", "Active", "Under Review", "Closed"];
+const STAGES = ["New", "Review", "Offer", "Contract", "Closed", "Pass"];
 
 export default function DealDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +37,7 @@ export default function DealDetailPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     supabaseGetDeal(id!, getApiKey()!)
@@ -56,8 +58,9 @@ export default function DealDetailPage() {
         stage: newStage,
       });
       setDeal({ ...deal, stage: newStage });
+      toast({ title: "Stage updated", description: `Deal moved to ${newStage}.` });
     } catch {
-      // silently fail
+      toast({ title: "Error", description: "Failed to update stage.", variant: "destructive" });
     } finally {
       setSaving(false);
     }

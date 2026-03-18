@@ -56,6 +56,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [assumptionTemplates, setAssumptionTemplates] = useState<AssumptionTemplate[]>([]);
   const [selectedAssumptionId, setSelectedAssumptionId] = useState<string>("");
+  const [validationError, setValidationError] = useState("");
 
   const geocodeAddress = useCallback(async (addr: string) => {
     if (addr.trim().length < 5) return;
@@ -138,6 +139,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setMaxComps("");
       setCommercialEnabled(false);
       setCommercialSpaces([]);
+      setSelectedAssumptionId("");
+      setValidationError("");
     }
   }, [template, open]);
 
@@ -184,7 +187,27 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     } as Partial<Template> & { assumption_template_id?: string };
   };
 
+
+
+  const validate = (): boolean => {
+    if (!address.trim()) {
+      setValidationError("Address is required.");
+      return false;
+    }
+    if (selectedCombos.size === 0) {
+      setValidationError("Select at least one unit type.");
+      return false;
+    }
+    if (totalUnits === 0) {
+      setValidationError("Total units must be greater than 0.");
+      return false;
+    }
+    setValidationError("");
+    return true;
+  };
+
   const handleSave = async () => {
+    if (!validate()) return;
     setSaving(true);
     try {
       await onSave(buildData());
@@ -195,6 +218,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
 
   const handleSaveAndRun = async () => {
     if (!onSaveAndRun) return;
+    if (!validate()) return;
     setSaving(true);
     try {
       await onSaveAndRun(buildData());
@@ -454,8 +478,12 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <div className="flex flex-col gap-2 border-t border-border px-6 py-4">
+          {validationError && (
+            <p className="text-sm text-destructive">{validationError}</p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+          <Button variant="ghost" onClick={() => { setValidationError(""); onClose(); }} disabled={saving}>Cancel</Button>
           {isNew && onSaveAndRun && (
             <Button onClick={handleSaveAndRun} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {saving ? "Saving…" : "Save & Run"}
@@ -464,6 +492,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
           <Button onClick={handleSave} disabled={saving}>
             {saving ? "Saving…" : "Save Template"}
           </Button>
+        </div>
         </div>
       </div>
     </div>
