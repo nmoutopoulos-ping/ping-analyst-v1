@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Save, Check } from "lucide-react";
-import { apiGet, apiPatch, getApiKey } from "@/lib/api";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetSettings, supabaseUpdateSettings } from "@/lib/supabase";
 import { Assumptions } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 
