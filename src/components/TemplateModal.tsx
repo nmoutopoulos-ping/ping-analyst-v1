@@ -487,7 +487,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
             <p className="text-sm text-destructive">{validationError}</p>
           )}
           <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" onClick={() => { setValidationError(""); onClose(); }} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" onClick={() => { setSaving(false); setValidationError(""); onClose(); }}>Cancel</Button>
           {isNew && onSaveAndRun && (
             <Button onClick={handleSaveAndRun} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {saving ? "Saving…" : "Save & Run"}
