@@ -111,14 +111,13 @@ export default function DealDetailPage() {
             </section>
 
             {/* Comp Summary */}
-            {c && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <h3 className="mb-4 text-sm font-semibold text-foreground">Comp Summary</h3>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   {[
-                    ["Avg Rent/Unit", fmt(c.avg_rent, "usd")],
-                    ["Avg SQFT", fmt(c.avg_sqft, "num")],
-                    ["Total Comps", c.count],
+                    ["Avg Rent/Unit", fmt(c?.avg_rent, "usd")],
+                    ["Avg SQFT", fmt(c?.avg_sqft, "num")],
+                    ["Total Comps", c?.count ?? 0],
                     ["Radius", m?.radius ? `${m.radius} mi` : "—"],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
@@ -128,7 +127,6 @@ export default function DealDetailPage() {
                   ))}
                 </div>
               </section>
-            )}
 
             {/* Financial Results */}
             {r && (
