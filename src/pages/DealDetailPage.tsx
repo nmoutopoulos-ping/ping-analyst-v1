@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, MapPin, Calendar } from "lucide-react";
-import { apiPatch, getApiKey, getDownloadUrl } from "@/lib/api";
+import { apiPatch, getApiKey } from "@/lib/api";
 import { supabaseGetDeal } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
@@ -111,14 +111,13 @@ export default function DealDetailPage() {
             </section>
 
             {/* Comp Summary */}
-            {c && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <h3 className="mb-4 text-sm font-semibold text-foreground">Comp Summary</h3>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   {[
-                    ["Avg Rent/Unit", fmt(c.avg_rent, "usd")],
-                    ["Avg SQFT", fmt(c.avg_sqft, "num")],
-                    ["Total Comps", c.count],
+                    ["Avg Rent/Unit", fmt(c?.avg_rent, "usd")],
+                    ["Avg SQFT", fmt(c?.avg_sqft, "num")],
+                    ["Total Comps", c?.count ?? 0],
                     ["Radius", m?.radius ? `${m.radius} mi` : "—"],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
@@ -128,7 +127,6 @@ export default function DealDetailPage() {
                   ))}
                 </div>
               </section>
-            )}
 
             {/* Financial Results */}
             {r && (
@@ -176,22 +174,38 @@ export default function DealDetailPage() {
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <h3 className="mb-3 text-sm font-semibold text-foreground">Downloads</h3>
               <div className="space-y-2">
-                <a
-                  href={getDownloadUrl(deal.search_id, "excel")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald/10 px-4 py-2.5 text-sm font-medium text-emerald transition-colors hover:bg-emerald/20"
+                <button
+                  disabled={!deal.excel_data}
+                  onClick={() => {
+                    if (!deal.excel_data) return;
+                    const blob = new Blob([Uint8Array.from(atob(deal.excel_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = deal.excel_path || `${deal.search_id}.xlsx`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Download className="h-4 w-4" /> Excel Model
-                </a>
-                <a
-                  href={getDownloadUrl(deal.search_id, "docx")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue/10 px-4 py-2.5 text-sm font-medium text-blue transition-colors hover:bg-blue/20"
+                  <Download className="h-4 w-4" /> {deal.excel_data ? "Excel Model" : "Excel — Not available"}
+                </button>
+                <button
+                  disabled={!deal.docx_data}
+                  onClick={() => {
+                    if (!deal.docx_data) return;
+                    const blob = new Blob([Uint8Array.from(atob(deal.docx_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = deal.docx_path || `${deal.search_id}.docx`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Download className="h-4 w-4" /> Word Summary
-                </a>
+                  <Download className="h-4 w-4" /> {deal.docx_data ? "Word Summary" : "Word — Not available"}
+                </button>
               </div>
             </div>
           </div>
