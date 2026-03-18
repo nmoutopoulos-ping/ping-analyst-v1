@@ -56,8 +56,9 @@ export default function DealDetailPage() {
         stage: newStage,
       });
       setDeal({ ...deal, stage: newStage });
+      toast({ title: "Stage updated", description: `Deal moved to ${newStage}.` });
     } catch {
-      // silently fail
+      toast({ title: "Error", description: "Failed to update stage.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
