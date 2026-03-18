@@ -270,7 +270,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
         if (i !== idx) return row;
         const updated = { ...row, [field]: value };
         if (field === "sqft" || field === "price_per_sqft") {
-          updated.annual_revenue = (Number(updated.sqft) || 0) * (Number(updated.price_per_sqft) || 0);
+          updated.annual_revenue = ((Number(updated.sqft) || 0) * (Number(updated.price_per_sqft) || 0)) / 12;
         }
         return updated;
       })
@@ -487,8 +487,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                         <tr className="border-b border-border bg-muted/30">
                           <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Space Type</th>
                           <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">SQ FT</th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">$/SF/YR</th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">ANN. REV</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">$/SF/MO</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">MO. REV</th>
                           <th className="w-10"></th>
                         </tr>
                       </thead>
