@@ -380,14 +380,14 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
               </section>
             )}
 
-            {/* Assumption Template Picker */}
             <section>
               <h3 className="label-uppercase mb-3">Assumptions</h3>
               <Select value={selectedAssumptionId} onValueChange={setSelectedAssumptionId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Use default assumptions" />
+                  <SelectValue placeholder="Use default settings" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__default__">Use default settings</SelectItem>
                   {assumptionTemplates.map((at) => (
                     <SelectItem key={at.id} value={at.id}>
                       {at.name} {at.is_default ? "⭐" : ""}
@@ -395,7 +395,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                   ))}
                 </SelectContent>
               </Select>
-              {selectedAssumptionId && (
+              {selectedAssumptionId && selectedAssumptionId !== "__default__" && (
                 <p className="mt-1.5 text-xs text-muted-foreground">
                   These assumptions will be used for this analysis run.
                 </p>
