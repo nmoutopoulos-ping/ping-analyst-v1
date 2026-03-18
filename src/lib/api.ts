@@ -1,4 +1,4 @@
-const API_BASE = "https://analyst-ra00.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || "https://analyst-ra00.onrender.com";
 
 export function getApiKey(): string | null {
   return localStorage.getItem("ping_api_key");
