@@ -490,6 +490,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
             {saving ? "Saving…" : "Save Template"}
           </Button>
         </div>
+        </div>
       </div>
     </div>
   );
