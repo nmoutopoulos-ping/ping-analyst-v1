@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, MoreVertical, MapPin } from "lucide-react";
-import { apiGet, apiPost, apiPatch, apiDelete, getApiKey } from "@/lib/api";
+import { getApiKey } from "@/lib/api";
+import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 import TemplateModal from "@/components/TemplateModal";
