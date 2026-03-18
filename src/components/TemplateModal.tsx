@@ -183,13 +183,17 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       min_comps: minComps ? Number(minComps) : undefined,
       max_comps: maxComps ? Number(maxComps) : undefined,
       commercial_spaces: commercialEnabled ? commercialSpaces : undefined,
-      assumption_template_id: selectedAssumptionId || undefined,
+      assumption_template_id: (selectedAssumptionId && selectedAssumptionId !== "__default__") ? selectedAssumptionId : undefined,
     } as Partial<Template> & { assumption_template_id?: string };
   };
 
 
 
   const validate = (): boolean => {
+    if (!name.trim()) {
+      setValidationError("Name is required.");
+      return false;
+    }
     if (!address.trim()) {
       setValidationError("Address is required.");
       return false;
@@ -267,7 +271,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
               className="text-base font-semibold"
             />
           </div>
-          <button onClick={onClose} className="ml-4 rounded-md p-1 text-muted-foreground hover:text-foreground">
+          <button onClick={() => { setSaving(false); setValidationError(""); onClose(); }} className="ml-4 rounded-md p-1 text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -376,14 +380,14 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
               </section>
             )}
 
-            {/* Assumption Template Picker */}
             <section>
               <h3 className="label-uppercase mb-3">Assumptions</h3>
               <Select value={selectedAssumptionId} onValueChange={setSelectedAssumptionId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Use default assumptions" />
+                  <SelectValue placeholder="Use default settings" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__default__">Use default settings</SelectItem>
                   {assumptionTemplates.map((at) => (
                     <SelectItem key={at.id} value={at.id}>
                       {at.name} {at.is_default ? "⭐" : ""}
@@ -391,7 +395,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                   ))}
                 </SelectContent>
               </Select>
-              {selectedAssumptionId && (
+              {selectedAssumptionId && selectedAssumptionId !== "__default__" && (
                 <p className="mt-1.5 text-xs text-muted-foreground">
                   These assumptions will be used for this analysis run.
                 </p>
@@ -483,7 +487,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
             <p className="text-sm text-destructive">{validationError}</p>
           )}
           <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" onClick={() => { setValidationError(""); onClose(); }} disabled={saving}>Cancel</Button>
+          <Button variant="ghost" onClick={() => { setSaving(false); setValidationError(""); onClose(); }}>Cancel</Button>
           {isNew && onSaveAndRun && (
             <Button onClick={handleSaveAndRun} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               {saving ? "Saving…" : "Save & Run"}

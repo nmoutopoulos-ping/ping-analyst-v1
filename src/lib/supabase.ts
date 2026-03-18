@@ -19,7 +19,10 @@ const f = (v: unknown) =>
 const i = (v: unknown) =>
   v != null && v !== "" ? parseInt(String(v), 10) : undefined;
 
-const DS =
+const DS_LIST =
+  "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,results,status,created_at,preset_name,archived";
+
+const DS_DETAIL =
   "search_id,address,short_address,email,api_key,price,cost,sqft,total_units,radius,deal_stage,combos,comp_summary,excel_path,docx_path,excel_data,docx_data,results,status,created_at,preset_name,archived";
 
 function normalizeDeal(row: Record<string, unknown>): Deal {
@@ -64,7 +67,7 @@ export async function supabaseLogin(
 
 export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   const r = await fetch(
-    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.false&select=${DS}&order=created_at.desc`,
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.false&select=${DS_LIST}&order=created_at.desc`,
     { headers: H }
   );
   if (!r.ok) throw new Error("Failed to fetch deals");
@@ -76,7 +79,7 @@ export async function supabaseGetDeal(
   apiKey: string
 ): Promise<Deal | null> {
   const r = await fetch(
-    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}&api_key=eq.${encodeURIComponent(apiKey)}&select=${DS}&limit=1`,
+    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}&api_key=eq.${encodeURIComponent(apiKey)}&select=${DS_DETAIL}&limit=1`,
     { headers: H }
   );
   if (!r.ok) throw new Error("Failed to fetch deal");

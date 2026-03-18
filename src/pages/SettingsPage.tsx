@@ -88,7 +88,6 @@ export default function SettingsPage() {
     setSaved(false);
     try {
       await supabaseUpdateSettings(apiKey, values as unknown as Record<string, unknown>);
-      // If a template is selected, update it too
       if (selectedTemplateId) {
         await supabaseUpdateAssumptionTemplate(selectedTemplateId, apiKey, { assumptions: values });
         setTemplates((prev) =>
@@ -96,6 +95,7 @@ export default function SettingsPage() {
         );
       }
       setSaved(true);
+      toast({ title: "Assumptions saved", description: "Your assumptions have been updated." });
       setTimeout(() => setSaved(false), 3000);
     } catch {
       setError("Failed to save settings.");
