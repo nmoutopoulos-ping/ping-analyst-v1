@@ -34,7 +34,7 @@ export default function SettingsPage() {
     setSaving(true);
     setSaved(false);
     try {
-      await supabaseUpdateSettings(getApiKey()!, values as Record<string, unknown>);
+      await supabaseUpdateSettings(getApiKey()!, values as unknown as Record<string, unknown>);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
