@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
-import { apiPost, setAuth } from "@/lib/api";
+import { setAuth } from "@/lib/api";
+import { supabaseLogin } from "@/lib/supabase";
 
 export default function LoginPage() {
   // Warm up the Render server as soon as the login page loads
