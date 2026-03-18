@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, Download, MapPin, Calendar, Archive } from "lucide-react";
 import { apiPatch, getApiKey } from "@/lib/api";
-import { supabaseGetDeal } from "@/lib/supabase";
+import { supabaseGetDeal, supabaseArchiveDeal } from "@/lib/supabase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
 import StageBadge from "@/components/StageBadge";
