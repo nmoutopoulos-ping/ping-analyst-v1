@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, MapPin, Calendar } from "lucide-react";
-import { apiPatch, getApiKey, getDownloadUrl } from "@/lib/api";
+import { apiPatch, getApiKey } from "@/lib/api";
 import { supabaseGetDeal } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import TopNav from "@/components/TopNav";
