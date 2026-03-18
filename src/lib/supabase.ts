@@ -79,7 +79,7 @@ export async function supabaseGetDeal(
   apiKey: string
 ): Promise<Deal | null> {
   const r = await fetch(
-    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}&api_key=eq.${encodeURIComponent(apiKey)}&select=${DS}&limit=1`,
+    `${SB_URL}/rest/v1/deals?search_id=eq.${encodeURIComponent(searchId)}&api_key=eq.${encodeURIComponent(apiKey)}&select=${DS_DETAIL}&limit=1`,
     { headers: H }
   );
   if (!r.ok) throw new Error("Failed to fetch deal");

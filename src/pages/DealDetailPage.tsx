@@ -183,9 +183,6 @@ export default function DealDetailPage() {
                 ))}
               </select>
               {saving && <p className="mt-2 text-xs text-muted-foreground">Saving…</p>}
-              <div className="mt-3">
-                <StageBadge stage={deal.stage} />
-              </div>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
