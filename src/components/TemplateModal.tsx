@@ -180,7 +180,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       min_comps: minComps ? Number(minComps) : undefined,
       max_comps: maxComps ? Number(maxComps) : undefined,
       commercial_spaces: commercialEnabled ? commercialSpaces : undefined,
-    };
+      assumption_template_id: selectedAssumptionId || undefined,
+    } as Partial<Template> & { assumption_template_id?: string };
   };
 
   const handleSave = async () => {
