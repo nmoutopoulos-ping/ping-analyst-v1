@@ -41,7 +41,9 @@ function normalizeDeal(row: Record<string, unknown>): Deal {
       radius: f(row.radius),
       combos: (row.combos as { bed: number; bath: number; units: number }[]) || [],
     },
-    results: undefined,
+    results: (row.results as Deal["results"]) || null,
+    excel_data: (row.excel_data as unknown) || null,
+    docx_data: (row.docx_data as unknown) || null,
     excel_path: row.excel_path ? String(row.excel_path) : undefined,
     docx_path: row.docx_path ? String(row.docx_path) : undefined,
   };
