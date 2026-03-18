@@ -23,8 +23,8 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    apiGet<{ ok: boolean; assumptions: Assumptions }>("/settings")
-      .then((res) => setValues(res.assumptions))
+    supabaseGetSettings(getApiKey()!)
+      .then((res) => setValues(res.assumptions as Assumptions))
       .catch(() => setError("Failed to load settings."))
       .finally(() => setLoading(false));
   }, []);
