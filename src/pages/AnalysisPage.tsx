@@ -95,11 +95,11 @@ export default function AnalysisPage() {
   };
 
   const handleSave = async (data: Partial<Template>) => {
-    const body = { ...data, api_key: getApiKey() };
+    const body = { ...data, api_key: getApiKey() } as Record<string, unknown>;
     if (editingTemplate) {
-      await apiPatch(`/crm/templates/${editingTemplate.id}`, body as Record<string, unknown>);
+      await supabaseUpdateTemplate(editingTemplate.id, body);
     } else {
-      await apiPost("/crm/templates", body as Record<string, unknown>);
+      await supabaseCreateTemplate(body);
     }
     setModalOpen(false);
     fetchTemplates();
