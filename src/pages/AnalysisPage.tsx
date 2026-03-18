@@ -120,7 +120,9 @@ export default function AnalysisPage() {
 
   const handleDuplicate = async (t: Template) => {
     const { id, ...rest } = t;
-    await apiPost("/crm/templates", { ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
+    await supabaseCreateTemplate({ ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
+    fetchTemplates();
+  };
     fetchTemplates();
   };
 
