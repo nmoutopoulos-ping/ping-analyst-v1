@@ -54,10 +54,8 @@ const emptyAssumptions: Assumptions = {
 };
 
 export default function SettingsPage() {
-  const [values, setValues] = useState<Assumptions | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   // Assumption templates state
@@ -75,52 +73,17 @@ export default function SettingsPage() {
 
   const fetchAll = () => {
     setLoading(true);
-    Promise.all([
-      supabaseGetSettings(apiKey),
-      supabaseGetAssumptionTemplates(apiKey),
-    ])
-      .then(([settings, tpls]) => {
-        setValues(settings.assumptions as Assumptions);
+    supabaseGetAssumptionTemplates(apiKey)
+      .then((tpls) => {
         setTemplates(tpls);
-        // Auto-select default template
         const def = tpls.find((t) => t.is_default);
         if (def) setSelectedTemplateId(def.id);
       })
-      .catch(() => setError("Failed to load settings."))
+      .catch(() => setError("Failed to load templates."))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchAll(); }, []);
-
-  const handleSave = async () => {
-    if (!values) return;
-    setSaving(true);
-    setSaved(false);
-    try {
-      await supabaseUpdateSettings(apiKey, values as unknown as Record<string, unknown>);
-      if (selectedTemplateId) {
-        await supabaseUpdateAssumptionTemplate(selectedTemplateId, apiKey, { assumptions: values });
-        setTemplates((prev) =>
-          prev.map((t) => (t.id === selectedTemplateId ? { ...t, assumptions: values } : t))
-        );
-      }
-      setSaved(true);
-      toast({ title: "Assumptions saved", description: "Your assumptions have been updated." });
-      setTimeout(() => setSaved(false), 3000);
-    } catch {
-      setError("Failed to save settings.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const loadTemplate = (id: string) => {
-    const tpl = templates.find((t) => t.id === id);
-    if (tpl) {
-      setValues({ ...emptyAssumptions, ...tpl.assumptions });
-      setSelectedTemplateId(id);
-    }
-  };
 
   const handleSaveAsNew = async () => {
     if (!newTemplateName.trim()) return;
