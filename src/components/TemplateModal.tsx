@@ -192,6 +192,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     } else {
       next.add(k);
       setUnitCounts((prev) => ({ ...prev, [k]: 1 }));
+      setUnitTypes((prev) => ({ ...prev, [k]: "Apartment" }));
     }
     setSelectedCombos(next);
   };
