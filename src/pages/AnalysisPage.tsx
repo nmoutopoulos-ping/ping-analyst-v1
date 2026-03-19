@@ -302,12 +302,17 @@ export default function AnalysisPage() {
                   <Button
                     size="sm"
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={runningId === t.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRunTemplate(t);
                     }}
                   >
-                    <Play className="h-3.5 w-3.5 mr-1" /> Run
+                    {runningId === t.id ? (
+                      <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Running…</>
+                    ) : (
+                      <><Play className="h-3.5 w-3.5 mr-1" /> Run</>
+                    )}
                   </Button>
                 </div>
               </div>
