@@ -184,7 +184,7 @@ export default function SettingsPage() {
           <>
             {/* Template selector */}
             <div className="mt-6 rounded-xl border border-border bg-card p-5 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Assumption Templates</h3>
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Load Template</h3>
               <div className="flex items-center gap-2">
                 <Select value={selectedTemplateId} onValueChange={loadTemplate}>
                   <SelectTrigger className="flex-1">
@@ -198,34 +198,34 @@ export default function SettingsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={() => setShowSaveAs(true)}>
-                  <Plus className="h-4 w-4 mr-1" /> Save As
+              </div>
+            </div>
+
+            {/* Save-as section */}
+            <div className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Save as New Template</h3>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter template name…"
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  className="flex-1 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveAsNew()}
+                />
+                <Button size="sm" onClick={handleSaveAsNew} disabled={!newTemplateName.trim()}>
+                  <Plus className="h-4 w-4 mr-1" /> Save
                 </Button>
               </div>
+            </div>
 
-              {/* Save-as inline form */}
-              {showSaveAs && (
-                <div className="mt-3 flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Template name…"
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    className="flex-1 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    onKeyDown={(e) => e.key === "Enter" && handleSaveAsNew()}
-                  />
-                  <Button size="sm" onClick={handleSaveAsNew} disabled={!newTemplateName.trim()}>
-                    Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setShowSaveAs(false); setNewTemplateName(""); }}>
-                    Cancel
-                  </Button>
-                </div>
-              )}
-
-              {/* Template list */}
-              {templates.length > 0 && (
-                <div className="mt-4 space-y-2">
+            {/* Saved Templates list */}
+            <div className="mt-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Saved Templates</h3>
+              {templates.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No saved templates yet. Use "Save as New Template" above to create one.</p>
+              ) : (
+                <div className="space-y-2">
                   {templates.map((t) => (
                     <div
                       key={t.id}
