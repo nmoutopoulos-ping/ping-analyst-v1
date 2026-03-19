@@ -11,7 +11,7 @@ import NotFound from "@/pages/NotFound";
 
 const App = () => (
   <>
-    <Toaster /
+    <Toaster />
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -20,7 +20,7 @@ const App = () => (
         <Route path="/deals/:id" element={<AuthGuard><DealDetailPage /></AuthGuard>} />
         <Route path="/analysis" element={<AuthGuard><AnalysisPage /></AuthGuard>} />
         <Route path="/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
-                <Route path="/extension" element={<AuthGuard><ExtensionPage /></AuthGuard>} />
+        <Route path="/extension" element={<AuthGuard><ExtensionPage /></AuthGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
