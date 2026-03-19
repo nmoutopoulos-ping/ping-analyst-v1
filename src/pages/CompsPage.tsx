@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, ZoomControl } from "react-leaflet";
-import TopNav from "@/components/TopNav";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
