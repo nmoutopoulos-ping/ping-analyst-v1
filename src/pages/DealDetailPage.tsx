@@ -221,38 +221,66 @@ export default function DealDetailPage() {
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <h3 className="mb-3 text-sm font-semibold text-foreground">Downloads</h3>
               <div className="space-y-2">
-                <button
-                  disabled={!deal.excel_data}
-                  onClick={() => {
-                    if (!deal.excel_data) return;
-                    const blob = new Blob([Uint8Array.from(atob(deal.excel_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = deal.excel_path || `${deal.search_id}.xlsx`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Download className="h-4 w-4" /> {deal.excel_data ? "Excel Model" : "Excel — Not available"}
-                </button>
-                <button
-                  disabled={!deal.docx_data}
-                  onClick={() => {
-                    if (!deal.docx_data) return;
-                    const blob = new Blob([Uint8Array.from(atob(deal.docx_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = deal.docx_path || `${deal.search_id}.docx`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Download className="h-4 w-4" /> {deal.docx_data ? "Word Summary" : "Word — Not available"}
-                </button>
+                {/* Excel download via path URL */}
+                {deal.excel_path && (
+                  <a
+                    href={deal.excel_path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20"
+                  >
+                    <Download className="h-4 w-4" /> 📊 Download Excel Report
+                  </a>
+                )}
+                {/* Excel download via base64 data fallback */}
+                {!deal.excel_path && (
+                  <button
+                    disabled={!deal.excel_data}
+                    onClick={() => {
+                      if (!deal.excel_data) return;
+                      const blob = new Blob([Uint8Array.from(atob(deal.excel_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${deal.search_id}.xlsx`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Download className="h-4 w-4" /> {deal.excel_data ? "📊 Download Excel Report" : "Excel — Not available"}
+                  </button>
+                )}
+                {/* Word download via path URL */}
+                {deal.docx_path && (
+                  <a
+                    href={deal.docx_path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20"
+                  >
+                    <Download className="h-4 w-4" /> 📄 Download Word Report
+                  </a>
+                )}
+                {/* Word download via base64 data fallback */}
+                {!deal.docx_path && (
+                  <button
+                    disabled={!deal.docx_data}
+                    onClick={() => {
+                      if (!deal.docx_data) return;
+                      const blob = new Blob([Uint8Array.from(atob(deal.docx_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${deal.search_id}.docx`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Download className="h-4 w-4" /> {deal.docx_data ? "📄 Download Word Report" : "Word — Not available"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

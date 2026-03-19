@@ -4,6 +4,7 @@ type Stage = string;
 
 const stageStyles: Record<string, string> = {
   New: "bg-muted text-muted-foreground",
+  Processing: "bg-amber-100 text-amber-700 animate-pulse",
   Active: "bg-blue/10 text-blue",
   Review: "bg-blue/10 text-blue",
   "Under Review": "bg-amber/10 text-amber",

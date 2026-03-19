@@ -8,6 +8,7 @@ import TopNav from "@/components/TopNav";
 import StageBadge from "@/components/StageBadge";
 
 const COLUMNS = [
+  { key: "Processing", label: "Processing", stages: ["Processing"] },
   { key: "New", label: "New", stages: ["New"] },
   { key: "Review", label: "Review", stages: ["Review"] },
   { key: "Offer", label: "Offer", stages: ["Offer"] },
@@ -72,7 +73,7 @@ export default function DealsPage() {
         {error && <p className="mt-8 text-sm text-destructive">{error}</p>}
 
         {!loading && !error && (
-          <div className="mt-8 grid grid-cols-6 gap-4">
+          <div className="mt-8 grid grid-cols-7 gap-4">
             {COLUMNS.map((col) => {
               const colDeals = filtered.filter((d) => col.stages.includes(d.stage));
               return (

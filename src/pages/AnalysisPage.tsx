@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, MoreVertical, MapPin, Play } from "lucide-react";
+import { Search, Plus, MoreVertical, MapPin, Play, Loader2 } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
@@ -53,6 +53,7 @@ export default function AnalysisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -129,14 +130,18 @@ export default function AnalysisPage() {
   };
 
   const handleRunTemplate = async (t: Template) => {
+    setRunningId(t.id);
     try {
       const { apiPost } = await import("@/lib/api");
       const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: t.id };
       await apiPost("/crm/analyze", analyzeBody);
       toast({ title: "Analysis running", description: "Results will appear in Deals." });
       navigate("/deals");
-    } catch {
+    } catch (err) {
+      console.error("[RunTemplate] Failed to run analysis for template:", t.id, err);
       toast({ title: "Error", description: "Failed to start analysis.", variant: "destructive" });
+    } finally {
+      setRunningId(null);
     }
   };
 
@@ -297,12 +302,17 @@ export default function AnalysisPage() {
                   <Button
                     size="sm"
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    disabled={runningId === t.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRunTemplate(t);
                     }}
                   >
-                    <Play className="h-3.5 w-3.5 mr-1" /> Run
+                    {runningId === t.id ? (
+                      <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Running…</>
+                    ) : (
+                      <><Play className="h-3.5 w-3.5 mr-1" /> Run</>
+                    )}
                   </Button>
                 </div>
               </div>
