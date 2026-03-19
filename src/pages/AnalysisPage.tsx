@@ -4,7 +4,7 @@ import { Search, Plus, MoreVertical, MapPin, Play, Loader2 } from "lucide-react"
 import { getApiKey } from "@/lib/api";
 import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
-import TopNav from "@/components/TopNav";
+
 import TemplateModal from "@/components/TemplateModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
