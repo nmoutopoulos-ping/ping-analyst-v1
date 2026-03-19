@@ -343,6 +343,5 @@ export default function AnalysisPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
   );
 }

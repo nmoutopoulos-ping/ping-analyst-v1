@@ -484,6 +484,5 @@ export default function CompsPage() {
           </div>
         )}
       </main>
-    </div>
   );
 }
