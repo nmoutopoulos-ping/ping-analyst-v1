@@ -1,16 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { format } from "date-fns";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, TileLayer, CircleMarker, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, CircleMarker, Marker, Popup, ZoomControl } from "react-leaflet";
 import TopNav from "@/components/TopNav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Expand, X } from "lucide-react";
+import { MapPin, Expand, X, ZoomIn, ZoomOut, Locate } from "lucide-react";
 import { supabaseGetComps, type RentcastComp } from "@/lib/supabase";
+
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
 const SB_URL =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -70,15 +72,38 @@ function circleRadius(price: number | null) {
 
 function CompPopup({ comp }: { comp: RentcastComp }) {
   return (
-    <div className="text-xs space-y-1 min-w-[180px]">
+    <div className="text-xs space-y-1 min-w-[200px]">
       <p className="font-semibold font-mono">{comp.formatted_address}</p>
+      <p className="text-[11px] text-muted-foreground font-mono">ID: {comp.comp_id ?? comp.id}</p>
       <p>
         ${comp.price?.toLocaleString()}/mo · {comp.bedrooms}bd {comp.bathrooms}ba · {comp.square_footage?.toLocaleString()} sqft
       </p>
       <p className="text-muted-foreground">
         {comp.listing_status} · {comp.days_on_market ?? "—"} days · {comp.distance_km?.toFixed(2)} km
       </p>
+      {comp.rank != null && (
+        <p className="text-muted-foreground">Rank: #{comp.rank}</p>
+      )}
     </div>
+  );
+}
+
+function HoverableCircleMarker({ comp }: { comp: RentcastComp }) {
+  const markerRef = useRef<L.CircleMarker>(null);
+
+  return (
+    <CircleMarker
+      ref={markerRef}
+      center={[Number(comp.latitude), Number(comp.longitude)]}
+      radius={circleRadius(comp.price)}
+      pathOptions={{ color: "hsl(217,91%,60%)", fillColor: "hsl(217,91%,60%)", fillOpacity: 0.65, weight: 1.5 }}
+      eventHandlers={{
+        mouseover: () => markerRef.current?.openPopup(),
+        mouseout: () => markerRef.current?.closePopup(),
+      }}
+    >
+      <Popup><CompPopup comp={comp} /></Popup>
+    </CircleMarker>
   );
 }
 
@@ -115,23 +140,18 @@ function LazyMap({ dealId, comps, dealAddress, onExpand }: {
           center={centroid}
           zoom={13}
           scrollWheelZoom={false}
+          zoomControl={false}
           style={{ height: "100%", width: "100%" }}
           attributionControl={false}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <ZoomControl position="topleft" />
+          <TileLayer url={TILE_URL} />
           <Marker position={centroid} icon={starIcon}>
             <Popup><span className="text-xs font-semibold">{dealAddress}</span></Popup>
           </Marker>
           {comps.map((c) =>
             c.latitude != null && c.longitude != null ? (
-              <CircleMarker
-                key={c.id}
-                center={[Number(c.latitude), Number(c.longitude)]}
-                radius={circleRadius(c.price)}
-                pathOptions={{ color: "hsl(217,91%,60%)", fillColor: "hsl(217,91%,60%)", fillOpacity: 0.6, weight: 1 }}
-              >
-                <Popup><CompPopup comp={c} /></Popup>
-              </CircleMarker>
+              <HoverableCircleMarker key={c.id} comp={c} />
             ) : null
           )}
         </MapContainer>
@@ -168,37 +188,52 @@ function FullMapModal({ open, onClose, deal, comps }: {
   const [bedFilter, setBedFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [mapRef, setMapRef] = useState<L.Map | null>(null);
+  const markerRefs = useRef<Record<string, L.CircleMarker>>({});
+  const [activeCompId, setActiveCompId] = useState<string | null>(null);
 
-  const filtered = comps.filter((c) => {
+  const filtered = useMemo(() => comps.filter((c) => {
     if (bedFilter !== "all") {
       const b = bedFilter === "3+" ? 3 : Number(bedFilter);
       if (bedFilter === "3+" ? (c.bedrooms ?? 0) < 3 : c.bedrooms !== b) return false;
     }
     if (statusFilter !== "all" && c.listing_status?.toLowerCase() !== statusFilter) return false;
     return true;
-  });
+  }), [comps, bedFilter, statusFilter]);
 
   const centroid = getCentroid(comps);
   const bounds = getBounds(filtered.length > 0 ? filtered : comps);
 
-  const panTo = useCallback((comp: RentcastComp) => {
+  const panToComp = useCallback((comp: RentcastComp) => {
     if (mapRef && comp.latitude != null && comp.longitude != null) {
-      mapRef.flyTo([Number(comp.latitude), Number(comp.longitude)], 16);
+      mapRef.flyTo([Number(comp.latitude), Number(comp.longitude)], 17, { duration: 0.8 });
+      setActiveCompId(comp.id);
+      // Open the popup after flying
+      setTimeout(() => {
+        const marker = markerRefs.current[comp.id];
+        if (marker) marker.openPopup();
+      }, 900);
     }
   }, [mapRef]);
 
+  const resetView = useCallback(() => {
+    if (mapRef && bounds) {
+      mapRef.flyToBounds(bounds, { padding: [40, 40], duration: 0.8 });
+      setActiveCompId(null);
+    }
+  }, [mapRef, bounds]);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[85vh] p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden z-[9999]">
         <DialogTitle className="sr-only">Map: {deal.short_address || deal.address}</DialogTitle>
         {/* Filters */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border flex-wrap">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border flex-wrap bg-background">
           <span className="text-xs font-medium text-muted-foreground mr-1">Beds:</span>
           {["all", "0", "1", "2", "3+"].map((v) => (
             <button
               key={v}
               onClick={() => setBedFilter(v)}
-              className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${bedFilter === v ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              className={`px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${bedFilter === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
             >
               {v === "all" ? "All" : v === "0" ? "Studio" : `${v}bd`}
             </button>
@@ -208,29 +243,42 @@ function FullMapModal({ open, onClose, deal, comps }: {
             <button
               key={v}
               onClick={() => setStatusFilter(v)}
-              className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize transition-colors ${statusFilter === v ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize transition-colors ${statusFilter === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
             >
               {v === "all" ? "All" : v}
             </button>
           ))}
-          <button onClick={onClose} className="ml-auto p-1 rounded hover:bg-muted">
-            <X className="h-4 w-4" />
-          </button>
+          <div className="ml-auto flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={resetView} title="Reset view">
+              <Locate className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => mapRef?.zoomIn()} title="Zoom in">
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => mapRef?.zoomOut()} title="Zoom out">
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <button onClick={onClose} className="ml-1 p-1 rounded hover:bg-muted">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <div className="flex flex-1 overflow-hidden" style={{ height: "calc(85vh - 44px)" }}>
+        <div className="flex flex-1 overflow-hidden" style={{ height: "calc(90vh - 44px)" }}>
           {/* Sidebar */}
-          <div className="w-[280px] border-r border-border overflow-y-auto shrink-0 hidden md:block">
-            <div className="p-3 text-xs font-semibold text-muted-foreground border-b border-border">
+          <div className="w-[280px] border-r border-border overflow-y-auto shrink-0 hidden md:block bg-background">
+            <div className="p-3 text-xs font-semibold text-muted-foreground border-b border-border sticky top-0 bg-background z-10">
               {filtered.length} comps
             </div>
             {filtered.map((c) => (
               <button
                 key={c.id}
-                onClick={() => panTo(c)}
-                className="w-full text-left px-3 py-2 border-b border-border hover:bg-muted/50 transition-colors"
+                onClick={() => panToComp(c)}
+                className={`w-full text-left px-3 py-2 border-b border-border transition-colors ${
+                  activeCompId === c.id ? "bg-accent" : "hover:bg-muted/50"
+                }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="flex items-center justify-center h-5 w-5 rounded-full bg-accent text-accent-foreground text-[10px] font-bold shrink-0">
+                  <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold shrink-0">
                     {c.rank ?? "—"}
                   </span>
                   <span className="text-xs font-medium truncate">{c.formatted_address}</span>
@@ -242,7 +290,7 @@ function FullMapModal({ open, onClose, deal, comps }: {
             ))}
           </div>
           {/* Map */}
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <MapContainer
               key={`modal-${deal.id}-${bedFilter}-${statusFilter}`}
               bounds={bounds}
@@ -250,11 +298,16 @@ function FullMapModal({ open, onClose, deal, comps }: {
               center={centroid}
               zoom={13}
               scrollWheelZoom={true}
+              zoomControl={false}
+              doubleClickZoom={true}
+              zoomSnap={0.5}
+              zoomDelta={0.5}
               style={{ height: "100%", width: "100%" }}
               attributionControl={false}
               ref={setMapRef}
             >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <ZoomControl position="topleft" />
+              <TileLayer url={TILE_URL} />
               <Marker position={centroid} icon={starIcon}>
                 <Popup><span className="text-xs font-semibold">{deal.short_address || deal.address}</span></Popup>
               </Marker>
@@ -262,9 +315,20 @@ function FullMapModal({ open, onClose, deal, comps }: {
                 c.latitude != null && c.longitude != null ? (
                   <CircleMarker
                     key={c.id}
+                    ref={(el) => { if (el) markerRefs.current[c.id] = el; }}
                     center={[Number(c.latitude), Number(c.longitude)]}
                     radius={circleRadius(c.price)}
-                    pathOptions={{ color: "hsl(217,91%,60%)", fillColor: "hsl(217,91%,60%)", fillOpacity: 0.6, weight: 1 }}
+                    pathOptions={{
+                      color: activeCompId === c.id ? "hsl(0,80%,55%)" : "hsl(217,91%,60%)",
+                      fillColor: activeCompId === c.id ? "hsl(0,80%,55%)" : "hsl(217,91%,60%)",
+                      fillOpacity: 0.65,
+                      weight: activeCompId === c.id ? 3 : 1.5,
+                    }}
+                    eventHandlers={{
+                      mouseover: (e) => e.target.openPopup(),
+                      mouseout: (e) => { if (activeCompId !== c.id) e.target.closePopup(); },
+                      click: () => { setActiveCompId(c.id); },
+                    }}
                   >
                     <Popup><CompPopup comp={c} /></Popup>
                   </CircleMarker>
@@ -283,7 +347,6 @@ function DealCard({ deal, comps }: { deal: DealRow; comps: RentcastComp[] }) {
   const displayAddr = deal.short_address || deal.address;
   const dateStr = deal.created_at ? format(new Date(deal.created_at), "MMM d, yyyy") : "";
 
-  // Parse comp_summary for bedroom breakdown
   const bedBreakdown: string[] = [];
   if (deal.comp_summary && typeof deal.comp_summary === "object") {
     const cs = deal.comp_summary as Record<string, unknown>;
