@@ -64,7 +64,8 @@ export default function SettingsPage() {
   const [templates, setTemplates] = useState<AssumptionTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [newTemplateName, setNewTemplateName] = useState("");
-  
+  const [newValues, setNewValues] = useState<Assumptions>({ ...emptyAssumptions });
+  const [showNewDialog, setShowNewDialog] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
