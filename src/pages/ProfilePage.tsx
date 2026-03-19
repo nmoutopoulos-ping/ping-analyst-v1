@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { LogOut, Chrome, Download, ExternalLink, User } from "lucide-react";
 import { clearAuth, getUserName, getUserEmail } from "@/lib/api";
-import TopNav from "@/components/TopNav";
 import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
@@ -17,8 +16,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
+    <div className="mx-auto max-w-xl px-6 py-8">
       <div className="mx-auto max-w-xl px-6 py-8">
         <h1 className="text-2xl font-bold text-foreground">Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">Your account details and settings.</p>
