@@ -305,6 +305,5 @@ export default function DealDetailPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
