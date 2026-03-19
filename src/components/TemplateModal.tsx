@@ -72,6 +72,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [sqft, setSqft] = useState<string>("");
   const [selectedCombos, setSelectedCombos] = useState<Set<string>>(new Set());
   const [unitCounts, setUnitCounts] = useState<Record<string, number>>({});
+  const [unitTypes, setUnitTypes] = useState<Record<string, UnitType>>({});
   const [radius, setRadius] = useState<string>("0.5");
   const [minComps, setMinComps] = useState<string>("");
   const [maxComps, setMaxComps] = useState<string>("");
