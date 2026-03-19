@@ -214,90 +214,91 @@ export default function SettingsPage() {
               ) : (
                 <div className="space-y-2">
                   {templates.map((t) => (
-                    <div
-                      key={t.id}
-                      className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors ${
-                        t.id === selectedTemplateId
-                          ? "border-primary/40 bg-primary/5"
-                          : "border-border"
-                      }`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        {renamingId === t.id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={renameValue}
-                              onChange={(e) => setRenameValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") handleRename(t.id);
-                                if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
-                              }}
-                              autoFocus
-                              className="flex-1 rounded border border-input bg-card px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                            />
-                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleRename(t.id)}>
-                              <Check className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setRenamingId(null); setRenameValue(""); }}>
-                              <X className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => selectTemplate(t.id)}
-                            className="flex items-center gap-2 text-left text-foreground hover:text-primary transition-colors"
-                          >
-                            {t.name}
-                            {t.is_default && (
-                              <Badge className="border-0 bg-primary/10 text-primary text-[10px]">Default</Badge>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setInspectId(inspectId === t.id ? null : t.id)}
-                          title="View assumptions"
-                          className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => { setRenamingId(t.id); setRenameValue(t.name); }}
-                          title="Rename template"
-                          className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleSetDefault(t.id)}
-                          title={t.is_default ? "Default template" : "Set as default"}
-                          className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          {t.is_default ? <Star className="h-3.5 w-3.5 fill-primary text-primary" /> : <StarOff className="h-3.5 w-3.5" />}
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(t.id)}
-                          className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    {inspectId === t.id && t.assumptions && (
-                      <div className="ml-1 mb-2 rounded-lg border border-border bg-muted/30 px-4 py-3">
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-                          {fields.map(({ key, label }) => (
-                            <div key={key} className="flex justify-between">
-                              <span className="text-muted-foreground">{label}</span>
-                              <span className="font-medium text-foreground">{(t.assumptions as Assumptions)[key] ?? "—"}</span>
+                    <div key={t.id}>
+                      <div
+                        className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          t.id === selectedTemplateId
+                            ? "border-primary/40 bg-primary/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          {renamingId === t.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleRename(t.id);
+                                  if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
+                                }}
+                                autoFocus
+                                className="flex-1 rounded border border-input bg-card px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                              />
+                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleRename(t.id)}>
+                                <Check className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setRenamingId(null); setRenameValue(""); }}>
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
-                          ))}
+                          ) : (
+                            <button
+                              onClick={() => selectTemplate(t.id)}
+                              className="flex items-center gap-2 text-left text-foreground hover:text-primary transition-colors"
+                            >
+                              {t.name}
+                              {t.is_default && (
+                                <Badge className="border-0 bg-primary/10 text-primary text-[10px]">Default</Badge>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setInspectId(inspectId === t.id ? null : t.id)}
+                            title="View assumptions"
+                            className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => { setRenamingId(t.id); setRenameValue(t.name); }}
+                            title="Rename template"
+                            className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleSetDefault(t.id)}
+                            title={t.is_default ? "Default template" : "Set as default"}
+                            className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            {t.is_default ? <Star className="h-3.5 w-3.5 fill-primary text-primary" /> : <StarOff className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => setDeleteId(t.id)}
+                            className="rounded p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>))}
+                      {inspectId === t.id && t.assumptions && (
+                        <div className="mt-1 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                            {fields.map(({ key, label }) => (
+                              <div key={key} className="flex justify-between">
+                                <span className="text-muted-foreground">{label}</span>
+                                <span className="font-medium text-foreground">{(t.assumptions as Assumptions)[key] ?? "—"}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
 
                 </div>
               )}
