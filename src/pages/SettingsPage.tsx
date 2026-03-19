@@ -140,6 +140,21 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRename = async (id: string) => {
+    if (!renameValue.trim()) return;
+    try {
+      await supabaseUpdateAssumptionTemplate(id, apiKey, { name: renameValue.trim() });
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, name: renameValue.trim() } : t))
+      );
+      setRenamingId(null);
+      setRenameValue("");
+      toast({ title: "Template renamed" });
+    } catch {
+      toast({ title: "Error", description: "Failed to rename.", variant: "destructive" });
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteId) return;
     try {
