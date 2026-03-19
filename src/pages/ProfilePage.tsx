@@ -99,7 +99,6 @@ export default function ProfilePage() {
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </Button>
-        </div>
       </div>
     </div>
   );
