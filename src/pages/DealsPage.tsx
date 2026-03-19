@@ -4,7 +4,7 @@ import { Search, Settings, MapPin } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeals } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
-import TopNav from "@/components/TopNav";
+
 import StageBadge from "@/components/StageBadge";
 
 const COLUMNS = [
