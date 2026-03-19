@@ -8,6 +8,10 @@ export function getUserName(): string | null {
   return localStorage.getItem("ping_user_name");
 }
 
+export function getUserEmail(): string | null {
+  return localStorage.getItem("ping_user_email");
+}
+
 export function setAuth(apiKey: string, name: string, email: string) {
   localStorage.setItem("ping_api_key", apiKey);
   localStorage.setItem("ping_user_name", name);
