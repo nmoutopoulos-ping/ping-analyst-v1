@@ -404,16 +404,29 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                   {Array.from(selectedCombos).map((k) => {
                     const [bed, bath] = k.split("-").map(Number);
                     return (
-                      <div key={k} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
-                        <span className="text-sm text-foreground">
+                      <div key={k} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                        <span className="text-sm text-foreground whitespace-nowrap">
                           {bedLabel(bed)} {bed}bd/{bath}ba
                         </span>
+                        <Select
+                          value={unitTypes[k] || "Apartment"}
+                          onValueChange={(v) => setUnitTypes((prev) => ({ ...prev, [k]: v as UnitType }))}
+                        >
+                          <SelectTrigger className="h-8 w-40 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {UNIT_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Input
                           type="number"
                           min={1}
                           value={unitCounts[k] ?? 1}
                           onChange={(e) => setUnitCounts((prev) => ({ ...prev, [k]: Number(e.target.value) || 0 }))}
-                          className="w-20 text-center"
+                          className="w-20 text-center ml-auto"
                         />
                       </div>
                     );
