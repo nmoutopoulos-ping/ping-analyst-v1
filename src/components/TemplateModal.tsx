@@ -165,6 +165,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setSqft("");
       setSelectedCombos(new Set());
       setUnitCounts({});
+      setUnitTypes({});
       setRadius("0.5");
       setMinComps("");
       setMaxComps("");
