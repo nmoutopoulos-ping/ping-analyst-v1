@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Save, Check, Plus, Trash2, Star, StarOff } from "lucide-react";
+import { Save, Check, Plus, Trash2, Star, StarOff, Pencil, X } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import {
   supabaseGetSettings,
@@ -59,6 +59,8 @@ export default function SettingsPage() {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [showSaveAs, setShowSaveAs] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const { toast } = useToast();
 
   const apiKey = getApiKey()!;
@@ -135,6 +137,21 @@ export default function SettingsPage() {
       toast({ title: "Default updated" });
     } catch {
       toast({ title: "Error", description: "Failed to set default.", variant: "destructive" });
+    }
+  };
+
+  const handleRename = async (id: string) => {
+    if (!renameValue.trim()) return;
+    try {
+      await supabaseUpdateAssumptionTemplate(id, apiKey, { name: renameValue.trim() });
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, name: renameValue.trim() } : t))
+      );
+      setRenamingId(null);
+      setRenameValue("");
+      toast({ title: "Template renamed" });
+    } catch {
+      toast({ title: "Error", description: "Failed to rename.", variant: "destructive" });
     }
   };
 
@@ -218,16 +235,47 @@ export default function SettingsPage() {
                           : "border-border"
                       }`}
                     >
-                      <button
-                        onClick={() => loadTemplate(t.id)}
-                        className="flex items-center gap-2 text-left text-foreground hover:text-primary transition-colors"
-                      >
-                        {t.name}
-                        {t.is_default && (
-                          <Badge className="border-0 bg-primary/10 text-primary text-[10px]">Default</Badge>
+                      <div className="flex-1 min-w-0">
+                        {renamingId === t.id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRename(t.id);
+                                if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
+                              }}
+                              autoFocus
+                              className="flex-1 rounded border border-input bg-card px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                            />
+                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleRename(t.id)}>
+                              <Check className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => { setRenamingId(null); setRenameValue(""); }}>
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => loadTemplate(t.id)}
+                            className="flex items-center gap-2 text-left text-foreground hover:text-primary transition-colors"
+                          >
+                            {t.name}
+                            {t.is_default && (
+                              <Badge className="border-0 bg-primary/10 text-primary text-[10px]">Default</Badge>
+                            )}
+                          </button>
                         )}
-                      </button>
+                      </div>
                       <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => { setRenamingId(t.id); setRenameValue(t.name); }}
+                          title="Rename template"
+                          className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => handleSetDefault(t.id)}
                           title={t.is_default ? "Default template" : "Set as default"}
