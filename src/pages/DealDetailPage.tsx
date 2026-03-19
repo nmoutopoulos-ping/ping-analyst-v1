@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, MapPin, Calendar, Archive } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Archive, Loader2 } from "lucide-react";
 import { getApiKey } from "@/lib/api";
-import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage } from "@/lib/supabase";
+import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
