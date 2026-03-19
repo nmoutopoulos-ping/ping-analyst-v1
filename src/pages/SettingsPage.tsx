@@ -58,6 +58,7 @@ export default function SettingsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [inspectId, setInspectId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const apiKey = getApiKey()!;
