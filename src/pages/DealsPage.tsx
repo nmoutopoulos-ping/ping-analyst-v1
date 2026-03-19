@@ -49,9 +49,7 @@ export default function DealsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-6 py-8">
         <h1 className="text-2xl font-bold text-foreground">Deals</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           All submitted analyses stored and secure.
