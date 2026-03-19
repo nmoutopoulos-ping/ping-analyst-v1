@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Save, Check, Plus, Trash2, Star, StarOff, Pencil } from "lucide-react";
+import { Save, Check, Plus, Trash2, Star, StarOff, Pencil, X } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import {
   supabaseGetSettings,
