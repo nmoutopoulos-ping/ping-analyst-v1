@@ -7,7 +7,7 @@ import { MapContainer, TileLayer, CircleMarker, Marker, Popup, ZoomControl } fro
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Expand, X, ZoomIn, ZoomOut, Locate } from "lucide-react";
 import { supabaseGetComps, type RentcastComp } from "@/lib/supabase";
