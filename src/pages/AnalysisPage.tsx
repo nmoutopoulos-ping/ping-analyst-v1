@@ -159,9 +159,7 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Search row */}
         <div className="flex items-center gap-3">
           <div className="flex flex-1 items-center rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
