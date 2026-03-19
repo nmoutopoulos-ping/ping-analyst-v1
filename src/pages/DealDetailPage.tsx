@@ -64,8 +64,8 @@ export default function DealDetailPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-background"><TopNav /><p className="p-8 text-sm text-muted-foreground">Loading…</p></div>;
-  if (error || !deal) return <div className="min-h-screen bg-background"><TopNav /><p className="p-8 text-sm text-destructive">{error}</p></div>;
+  if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading…</p>;
+  if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
 
   const r = deal.results;
   const m = deal.search_meta;
