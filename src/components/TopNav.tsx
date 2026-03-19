@@ -1,6 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Plus, FileText, Settings, Building2, Puzzle, MapPin } from "lucide-react";
-import { clearAuth, getUserName } from "@/lib/api";
+import { Link, useLocation } from "react-router-dom";
+import { Plus, FileText, Settings, Building2, MapPin, User } from "lucide-react";
+import { getUserName } from "@/lib/api";
 import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
@@ -12,9 +12,7 @@ const navItems = [
 
 export default function TopNav() {
   const location = useLocation();
-  const navigate = useNavigate();
   const userName = getUserName();
-  const handleSignOut = () => { clearAuth(); navigate("/login"); };
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
@@ -40,9 +38,11 @@ export default function TopNav() {
       </div>
 
       <div className="ml-auto flex items-center gap-4">
-        {userName && <span className="text-xs text-nav-foreground/40">{userName}</span>}
         <span className="text-xs text-nav-foreground/30">v3.0</span>
-        <button onClick={handleSignOut} className="text-xs text-nav-foreground/50 hover:text-nav-foreground/80 transition-colors duration-150">Sign out</button>
+        <Link to="/profile" className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors duration-150 ${isActive("/profile") ? "bg-nav-muted text-nav-foreground" : "text-nav-foreground/50 hover:text-nav-foreground/80"}`}>
+          <User className="h-3.5 w-3.5" />
+          {userName && <span className="text-xs">{userName}</span>}
+        </Link>
       </div>
     </nav>
   );
