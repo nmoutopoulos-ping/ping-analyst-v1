@@ -8,7 +8,7 @@ import {
   supabaseDeleteAssumptionTemplate,
 } from "@/lib/supabase";
 import { Assumptions, AssumptionTemplate } from "@/lib/types";
-import TopNav from "@/components/TopNav";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -138,9 +138,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <div className="mx-auto max-w-xl px-6 py-8">
+    <>
+    <div className="mx-auto max-w-xl px-6 py-8">
         <h1 className="text-2xl font-bold text-foreground">Assumptions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Default financial assumptions used in every underwriting.
@@ -322,6 +321,6 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

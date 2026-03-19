@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, CircleMarker, Marker, Popup, ZoomControl } from "react-leaflet";
-import TopNav from "@/components/TopNav";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -448,9 +448,7 @@ export default function CompsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <main className="max-w-6xl mx-auto px-4 py-8">
+    <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Comp Map Catalog</h1>
           <p className="text-sm text-muted-foreground">Every RentCast search you've run, mapped.</p>
@@ -486,6 +484,5 @@ export default function CompsPage() {
           </div>
         )}
       </main>
-    </div>
   );
 }

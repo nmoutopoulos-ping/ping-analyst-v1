@@ -4,7 +4,7 @@ import { Search, Settings, MapPin } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeals } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
-import TopNav from "@/components/TopNav";
+
 import StageBadge from "@/components/StageBadge";
 
 const COLUMNS = [
@@ -49,9 +49,7 @@ export default function DealsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-6 py-8">
         <h1 className="text-2xl font-bold text-foreground">Deals</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           All submitted analyses stored and secure.
@@ -141,6 +139,5 @@ export default function DealsPage() {
           </div>
         )}
       </div>
-    </div>
   );
 }

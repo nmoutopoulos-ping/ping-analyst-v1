@@ -16,7 +16,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Deal } from "@/lib/types";
-import TopNav from "@/components/TopNav";
 
 
 function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num") {
@@ -65,17 +64,15 @@ export default function DealDetailPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-background"><TopNav /><p className="p-8 text-sm text-muted-foreground">Loading…</p></div>;
-  if (error || !deal) return <div className="min-h-screen bg-background"><TopNav /><p className="p-8 text-sm text-destructive">{error}</p></div>;
+  if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading…</p>;
+  if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
 
   const r = deal.results;
   const m = deal.search_meta;
   const c = deal.comp_summary;
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
         <button onClick={() => navigate("/deals")} className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back to Deals
         </button>
@@ -308,6 +305,5 @@ export default function DealDetailPage() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

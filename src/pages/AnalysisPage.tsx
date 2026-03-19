@@ -4,7 +4,7 @@ import { Search, Plus, MoreVertical, MapPin, Play, Loader2 } from "lucide-react"
 import { getApiKey } from "@/lib/api";
 import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
-import TopNav from "@/components/TopNav";
+
 import TemplateModal from "@/components/TemplateModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -159,9 +159,8 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <div className="mx-auto max-w-7xl px-6 py-8">
+    <>
+    <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Search row */}
         <div className="flex items-center gap-3">
           <div className="flex flex-1 items-center rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
@@ -345,6 +344,6 @@ export default function AnalysisPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
