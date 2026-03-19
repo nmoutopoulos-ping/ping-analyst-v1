@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Plus, FileText, Settings, Building2 } from "lucide-react";
+import { Plus, FileText, Settings, Building2, Puzzle } from "lucide-react";
 import { clearAuth, getUserName } from "@/lib/api";
 import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
   { label: "Analysis", path: "/analysis", icon: Plus },
   { label: "Deals", path: "/deals", icon: FileText },
+  { label: "Extension", path: "/extension", icon: Puzzle },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 
