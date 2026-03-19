@@ -240,3 +240,20 @@ export async function supabaseUpdateSettings(apiKey: string, assumptions: Record
   );
   if (!r.ok) throw new Error("Failed to save settings");
 }
+
+// ── Storage ──
+
+export async function supabaseCreateSignedUrl(
+  bucket: string,
+  path: string,
+  expiresIn = 3600
+): Promise<string> {
+  const r = await fetch(`${SB_URL}/storage/v1/object/sign/${bucket}/${path}`, {
+    method: "POST",
+    headers: H,
+    body: JSON.stringify({ expiresIn }),
+  });
+  if (!r.ok) throw new Error("Failed to create signed URL");
+  const data = await r.json();
+  return `${SB_URL}/storage/v1${data.signedURL}`;
+}

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, MapPin, Calendar, Archive } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Archive, Loader2 } from "lucide-react";
 import { getApiKey } from "@/lib/api";
-import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage } from "@/lib/supabase";
+import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -37,6 +37,8 @@ export default function DealDetailPage() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -221,40 +223,80 @@ export default function DealDetailPage() {
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <h3 className="mb-3 text-sm font-semibold text-foreground">Downloads</h3>
               <div className="space-y-2">
-                {deal.excel_data ? (
+                {(deal.excel_data || deal.excel_path) ? (
                   <button
-                    onClick={() => {
-                      const blob = new Blob([Uint8Array.from(atob(deal.excel_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = deal.excel_path || `${deal.search_id}.xlsx`;
-                      a.click();
-                      URL.revokeObjectURL(url);
+                    disabled={downloadingExcel}
+                    onClick={async () => {
+                      const filename = deal.excel_path?.split("/").pop() || `${deal.search_id}.xlsx`;
+                      if (deal.excel_data) {
+                        const raw = atob(deal.excel_data as string);
+                        const arr = new Uint8Array(raw.length);
+                        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                        const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } else if (deal.excel_path) {
+                        setDownloadingExcel(true);
+                        try {
+                          const signedUrl = await supabaseCreateSignedUrl("deal-files", deal.excel_path);
+                          window.open(signedUrl, "_blank");
+                        } catch {
+                          toast({ title: "Error", description: "Failed to download Excel file.", variant: "destructive" });
+                        } finally {
+                          setDownloadingExcel(false);
+                        }
+                      }
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
                   >
-                    <Download className="h-4 w-4" /> 📊 Download Excel Report
+                    {downloadingExcel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {downloadingExcel ? "Downloading…" : "📊 Download Excel Report"}
                   </button>
                 ) : (
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
                     <Download className="h-4 w-4" /> Excel — Not available
                   </div>
                 )}
-                {deal.docx_data ? (
+                {(deal.docx_data || deal.docx_path) ? (
                   <button
-                    onClick={() => {
-                      const blob = new Blob([Uint8Array.from(atob(deal.docx_data as string), (c) => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = deal.docx_path || `${deal.search_id}.docx`;
-                      a.click();
-                      URL.revokeObjectURL(url);
+                    disabled={downloadingDocx}
+                    onClick={async () => {
+                      const filename = deal.docx_path?.split("/").pop() || `${deal.search_id}.docx`;
+                      if (deal.docx_data) {
+                        const raw = atob(deal.docx_data as string);
+                        const arr = new Uint8Array(raw.length);
+                        for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                        const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      } else if (deal.docx_path) {
+                        setDownloadingDocx(true);
+                        try {
+                          const signedUrl = await supabaseCreateSignedUrl("deal-files", deal.docx_path);
+                          window.open(signedUrl, "_blank");
+                        } catch {
+                          toast({ title: "Error", description: "Failed to download Word file.", variant: "destructive" });
+                        } finally {
+                          setDownloadingDocx(false);
+                        }
+                      }
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
                   >
-                    <Download className="h-4 w-4" /> 📄 Download Word Report
+                    {downloadingDocx ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {downloadingDocx ? "Downloading…" : "📄 Download Word Report"}
                   </button>
                 ) : (
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
