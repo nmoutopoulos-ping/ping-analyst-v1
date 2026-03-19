@@ -85,6 +85,8 @@ export default function SettingsPage() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  const selectTemplate = (id: string) => setSelectedTemplateId(id);
+
   const handleSaveAsNew = async () => {
     if (!newTemplateName.trim()) return;
     setSaving(true);
