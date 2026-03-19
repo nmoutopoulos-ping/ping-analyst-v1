@@ -26,7 +26,7 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border top-12 h-[calc(100svh-3rem)]">
+    <Sidebar collapsible="icon">
       <SidebarContent className="pt-4">
         <SidebarGroup>
           <SidebarGroupContent>
@@ -38,7 +38,7 @@ export function AppSidebar() {
                       to={item.url}
                       end={false}
                       className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
                       <item.icon className="h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
