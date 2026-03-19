@@ -257,6 +257,13 @@ export default function SettingsPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <button
+                          onClick={() => setInspectId(inspectId === t.id ? null : t.id)}
+                          title="View assumptions"
+                          className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                        <button
                           onClick={() => { setRenamingId(t.id); setRenameValue(t.name); }}
                           title="Rename template"
                           className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
@@ -278,7 +285,20 @@ export default function SettingsPage() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    {inspectId === t.id && t.assumptions && (
+                      <div className="ml-1 mb-2 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                          {fields.map(({ key, label }) => (
+                            <div key={key} className="flex justify-between">
+                              <span className="text-muted-foreground">{label}</span>
+                              <span className="font-medium text-foreground">{(t.assumptions as Assumptions)[key] ?? "—"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>))}
+
                 </div>
               )}
             </div>
