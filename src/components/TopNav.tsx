@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Plus, FileText, Settings, Building2, Puzzle } from "lucide-react";
+import { Plus, FileText, Settings, Building2, Puzzle, MapPin } from "lucide-react";
 import { clearAuth, getUserName } from "@/lib/api";
 import NotificationBell from "@/components/NotificationBell";
 
