@@ -192,27 +192,68 @@ export default function SettingsPage() {
         {loading && <p className="mt-8 text-sm text-muted-foreground">Loading…</p>}
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
-        {values && (
+        {!loading && (
           <>
-           {/* Saved Templates */}
-            <div className="mt-6 rounded-xl border border-border bg-card p-5 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Saved Templates</h3>
-              <div className="flex items-center gap-2 mb-3">
-                <Select value={selectedTemplateId} onValueChange={loadTemplate}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select a template…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name} {t.is_default ? "⭐" : ""}
-                      </SelectItem>
+            {/* New Template button */}
+            <div className="mt-6 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Saved Templates</h3>
+              <Dialog open={showNewDialog} onOpenChange={(open) => {
+                setShowNewDialog(open);
+                if (!open) { setNewTemplateName(""); setNewValues({ ...emptyAssumptions }); }
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-1" /> New Template
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>New Assumption Template</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div>
+                      <label className="label-uppercase mb-1.5 block">Template Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Conservative, Aggressive…"
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+                    {fields.map(({ key, label, hint }) => (
+                      <div key={key}>
+                        <label className="label-uppercase mb-1.5 block">{label}</label>
+                        <input
+                          type="number"
+                          step="any"
+                          value={newValues[key] ?? ""}
+                          onChange={(e) =>
+                            setNewValues({ ...newValues, [key]: parseFloat(e.target.value) || 0 })
+                          }
+                          placeholder={hint}
+                          className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleSaveAsNew}
+                      disabled={!newTemplateName.trim() || saving}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      {saving ? "Saving…" : "Save Template"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Templates list */}
+            <div className="mt-3 rounded-xl border border-border bg-card p-5 shadow-sm">
               {templates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No saved templates yet. Fill in assumptions below and save.</p>
+                <p className="text-sm text-muted-foreground">No saved templates yet. Click "+ New Template" to create one.</p>
               ) : (
                 <div className="space-y-2">
                   {templates.map((t) => (
@@ -283,44 +324,6 @@ export default function SettingsPage() {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Assumption fields + save */}
-            <div className="mt-4 rounded-xl border border-border bg-card p-6 shadow-sm">
-              <div className="space-y-5">
-                {fields.map(({ key, label, hint }) => (
-                  <div key={key}>
-                    <label className="label-uppercase mb-1.5 block">{label}</label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={values[key] ?? ""}
-                      onChange={(e) =>
-                        setValues({ ...values, [key]: parseFloat(e.target.value) || 0 })
-                      }
-                      placeholder={hint}
-                      className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Save as new template */}
-              <div className="mt-6 flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Template name…"
-                  value={newTemplateName}
-                  onChange={(e) => setNewTemplateName(e.target.value)}
-                  className="flex-1 rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveAsNew()}
-                />
-                <Button onClick={handleSaveAsNew} disabled={!newTemplateName.trim() || saving}>
-                  <Save className="h-4 w-4 mr-1" />
-                  {saving ? "Saving…" : "Save Template"}
-                </Button>
-              </div>
             </div>
           </>
         )}
