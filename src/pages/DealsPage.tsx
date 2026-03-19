@@ -8,6 +8,7 @@ import TopNav from "@/components/TopNav";
 import StageBadge from "@/components/StageBadge";
 
 const COLUMNS = [
+  { key: "Processing", label: "Processing", stages: ["Processing"] },
   { key: "New", label: "New", stages: ["New"] },
   { key: "Review", label: "Review", stages: ["Review"] },
   { key: "Offer", label: "Offer", stages: ["Offer"] },
