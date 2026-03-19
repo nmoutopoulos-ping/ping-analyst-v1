@@ -130,14 +130,18 @@ export default function AnalysisPage() {
   };
 
   const handleRunTemplate = async (t: Template) => {
+    setRunningId(t.id);
     try {
       const { apiPost } = await import("@/lib/api");
       const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: t.id };
       await apiPost("/crm/analyze", analyzeBody);
       toast({ title: "Analysis running", description: "Results will appear in Deals." });
       navigate("/deals");
-    } catch {
+    } catch (err) {
+      console.error("[RunTemplate] Failed to run analysis for template:", t.id, err);
       toast({ title: "Error", description: "Failed to start analysis.", variant: "destructive" });
+    } finally {
+      setRunningId(null);
     }
   };
 
