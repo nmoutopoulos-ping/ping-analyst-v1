@@ -7,7 +7,6 @@ import DealDetailPage from "@/pages/DealDetailPage";
 import AnalysisPage from "@/pages/AnalysisPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
-import NotFound from "@/pages/NotFound";
 
 const App = () => (
   <>
