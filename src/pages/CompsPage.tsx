@@ -409,6 +409,7 @@ export default function CompsPage() {
   const [deals, setDeals] = useState<DealRow[]>([]);
   const [compsByDeal, setCompsByDeal] = useState<Record<string, RentcastComp[]>>({});
   const [loading, setLoading] = useState(true);
+  const [expandedDealId, setExpandedDealId] = useState<string | null>(null);
 
   useEffect(() => {
     const apiKey = localStorage.getItem("ping_api_key") ?? "";
@@ -438,42 +439,61 @@ export default function CompsPage() {
     })();
   }, []);
 
+  const expandedDeal = expandedDealId ? deals.find((d) => d.id === expandedDealId) : null;
+
+  if (expandedDeal) {
+    return (
+      <div className="h-[calc(100svh-3rem)] flex flex-col">
+        <FullPageMap
+          deal={expandedDeal}
+          comps={compsByDeal[expandedDeal.id] ?? []}
+          onClose={() => setExpandedDealId(null)}
+        />
+      </div>
+    );
+  }
+
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Comp Map Catalog</h1>
-          <p className="text-sm text-muted-foreground">Every RentCast search you've run, mapped.</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Comp Map Catalog</h1>
+        <p className="text-sm text-muted-foreground">Every RentCast search you've run, mapped.</p>
+      </div>
 
-        {loading ? (
-          <div className="grid gap-6 md:grid-cols-2">
-            {[1, 2].map((i) => (
-              <Card key={i} className="rounded-xl">
-                <CardContent className="p-4 space-y-3">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-3 w-1/3" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                  </div>
-                  <Skeleton className="h-[280px] w-full rounded-lg" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : deals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <MapPin className="h-12 w-12 text-muted-foreground/40 mb-4" />
-            <p className="text-muted-foreground">No complete searches found.</p>
-            <p className="text-sm text-muted-foreground/60 mt-1">Run a search in the Analyst tool to see your comps here.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {deals.map((deal) => (
-              <DealCard key={deal.id} deal={deal} comps={compsByDeal[deal.id] ?? []} />
-            ))}
-          </div>
-        )}
-      </main>
+      {loading ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2].map((i) => (
+            <Card key={i} className="rounded-xl">
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-1/3" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-[280px] w-full rounded-lg" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : deals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <MapPin className="h-12 w-12 text-muted-foreground/40 mb-4" />
+          <p className="text-muted-foreground">No complete searches found.</p>
+          <p className="text-sm text-muted-foreground/60 mt-1">Run a search in the Analyst tool to see your comps here.</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2">
+          {deals.map((deal) => (
+            <DealCard
+              key={deal.id}
+              deal={deal}
+              comps={compsByDeal[deal.id] ?? []}
+              onExpand={() => setExpandedDealId(deal.id)}
+            />
+          ))}
+        </div>
+      )}
+    </main>
   );
 }
