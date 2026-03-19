@@ -257,3 +257,42 @@ export async function supabaseCreateSignedUrl(
   const data = await r.json();
   return `${SB_URL}/storage/v1${data.signedURL}`;
 }
+
+// ── Rentcast Comps ──
+
+export type RentcastComp = {
+  id: string;
+  deal_id: string;
+  search_id: string;
+  comp_id: string | null;
+  formatted_address: string | null;
+  url: string | null;
+  rank: number | null;
+  property_type: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  square_footage: number | null;
+  price: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  distance_m: number | null;
+  distance_km: number | null;
+  filter_beds: number | null;
+  filter_baths: number | null;
+  days_on_market: number | null;
+  listing_status: string | null;
+  purchase_price: number | null;
+  improvements: number | null;
+  created_at: string;
+};
+
+export async function supabaseGetComps(dealIds: string[]): Promise<RentcastComp[]> {
+  if (dealIds.length === 0) return [];
+  const ids = dealIds.map((id) => `"${id}"`).join(",");
+  const r = await fetch(
+    `${SB_URL}/rest/v1/rentcast_comps?deal_id=in.(${ids})&order=rank.asc`,
+    { headers: H }
+  );
+  if (!r.ok) throw new Error("Failed to fetch comps");
+  return r.json() as Promise<RentcastComp[]>;
+}

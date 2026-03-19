@@ -22,6 +22,7 @@ const App = () => (
         <Route path="/analysis" element={<AuthGuard><AnalysisPage /></AuthGuard>} />
         <Route path="/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
         <Route path="/extension" element={<AuthGuard><ExtensionPage /></AuthGuard>} />
+        <Route path="/comps" element={<AuthGuard><CompsPage /></AuthGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

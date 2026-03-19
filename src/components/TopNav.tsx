@@ -7,6 +7,7 @@ const navItems = [
   { label: "Analysis", path: "/analysis", icon: Plus },
   { label: "Deals", path: "/deals", icon: FileText },
   { label: "Extension", path: "/extension", icon: Puzzle },
+  { label: "Comps", path: "/comps", icon: MapPin },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 
