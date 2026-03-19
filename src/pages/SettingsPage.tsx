@@ -123,15 +123,20 @@ export default function SettingsPage() {
   };
 
   const handleSaveAsNew = async () => {
-    if (!newTemplateName.trim() || !values) return;
+    if (!newTemplateName.trim()) return;
+    setSaving(true);
     try {
-      const created = await supabaseCreateAssumptionTemplate(apiKey, newTemplateName.trim(), values, false);
+      const created = await supabaseCreateAssumptionTemplate(apiKey, newTemplateName.trim(), newValues, false);
       setTemplates((prev) => [created, ...prev]);
       setSelectedTemplateId(created.id);
       setNewTemplateName("");
+      setNewValues({ ...emptyAssumptions });
+      setShowNewDialog(false);
       toast({ title: "Template saved", description: `"${created.name}" created.` });
     } catch {
       toast({ title: "Error", description: "Failed to save template.", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
