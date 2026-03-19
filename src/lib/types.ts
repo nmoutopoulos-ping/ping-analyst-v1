@@ -47,14 +47,10 @@ export interface Assumptions {
   other_inc_mo: number;
 }
 
-export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "Duplex", "Triplex", "Multi Family"] as const;
-export type UnitType = typeof UNIT_TYPES[number];
-
 export interface UnitCombo {
   bed: number;
   bath: number;
   units: number;
-  type?: UnitType;
 }
 
 export interface CommercialSpace {
@@ -91,4 +87,14 @@ export interface AssumptionTemplate {
   assumptions: Assumptions;
   is_default: boolean;
   created_at?: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  search_id: string;
+  type: string;
+  message: string;
+  read: boolean;
+  created_at: string;
 }
