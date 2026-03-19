@@ -186,6 +186,9 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       const nextCounts = { ...unitCounts };
       delete nextCounts[k];
       setUnitCounts(nextCounts);
+      const nextTypes = { ...unitTypes };
+      delete nextTypes[k];
+      setUnitTypes(nextTypes);
     } else {
       next.add(k);
       setUnitCounts((prev) => ({ ...prev, [k]: 1 }));
