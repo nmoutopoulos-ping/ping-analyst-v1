@@ -191,6 +191,28 @@ function FullMapModal({ open, onClose, deal, comps }: {
   const markerRefs = useRef<Record<string, L.CircleMarker>>({});
   const [activeCompId, setActiveCompId] = useState<string | null>(null);
 
+  // Compute which bed/status options actually exist in the data
+  const availableBeds = useMemo(() => {
+    const beds = new Set<string>();
+    comps.forEach((c) => {
+      const b = c.bedrooms ?? -1;
+      if (b === 0) beds.add("0");
+      else if (b === 1) beds.add("1");
+      else if (b === 2) beds.add("2");
+      else if (b >= 3) beds.add("3+");
+    });
+    return beds;
+  }, [comps]);
+
+  const availableStatuses = useMemo(() => {
+    const statuses = new Set<string>();
+    comps.forEach((c) => {
+      const s = c.listing_status?.toLowerCase();
+      if (s) statuses.add(s);
+    });
+    return statuses;
+  }, [comps]);
+
   const filtered = useMemo(() => comps.filter((c) => {
     if (bedFilter !== "all") {
       const b = bedFilter === "3+" ? 3 : Number(bedFilter);
@@ -229,7 +251,7 @@ function FullMapModal({ open, onClose, deal, comps }: {
         {/* Filters */}
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border flex-wrap bg-background">
           <span className="text-xs font-medium text-muted-foreground mr-1">Beds:</span>
-          {["all", "0", "1", "2", "3+"].map((v) => (
+          {["all", ...["0", "1", "2", "3+"].filter((v) => availableBeds.has(v))].map((v) => (
             <button
               key={v}
               onClick={() => setBedFilter(v)}
@@ -239,7 +261,7 @@ function FullMapModal({ open, onClose, deal, comps }: {
             </button>
           ))}
           <span className="text-xs font-medium text-muted-foreground ml-3 mr-1">Status:</span>
-          {["all", "active", "inactive"].map((v) => (
+          {["all", ...["active", "inactive"].filter((v) => availableStatuses.has(v))].map((v) => (
             <button
               key={v}
               onClick={() => setStatusFilter(v)}
