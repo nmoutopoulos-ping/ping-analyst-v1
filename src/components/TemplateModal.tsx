@@ -203,7 +203,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     const combos: UnitCombo[] = [];
     selectedCombos.forEach((k) => {
       const [bed, bath] = k.split("-").map(Number);
-      combos.push({ bed, bath, units: unitCounts[k] || 1 });
+      combos.push({ bed, bath, units: unitCounts[k] || 1, type: unitTypes[k] || "Apartment" });
     });
     return {
       name,
