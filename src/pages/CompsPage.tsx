@@ -361,8 +361,7 @@ function FullPageMap({ deal, comps, onClose }: {
   );
 }
 
-function DealCard({ deal, comps }: { deal: DealRow; comps: RentcastComp[] }) {
-  const [expanded, setExpanded] = useState(false);
+function DealCard({ deal, comps, onExpand }: { deal: DealRow; comps: RentcastComp[]; onExpand: () => void }) {
   const displayAddr = deal.short_address || deal.address;
   const dateStr = deal.created_at ? format(new Date(deal.created_at), "MMM d, yyyy") : "";
 
@@ -376,38 +375,33 @@ function DealCard({ deal, comps }: { deal: DealRow; comps: RentcastComp[] }) {
   }
 
   return (
-    <>
-      <Card className="rounded-xl shadow-sm hover:shadow-md transition-shadow">
-        <CardContent className="p-4 space-y-3">
-          <div>
-            <h3 className="font-semibold text-foreground truncate">{displayAddr}</h3>
-            <p className="text-xs font-mono text-muted-foreground">{deal.search_id}</p>
+    <Card className="rounded-xl shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="p-4 space-y-3">
+        <div>
+          <h3 className="font-semibold text-foreground truncate">{displayAddr}</h3>
+          <p className="text-xs font-mono text-muted-foreground">{deal.search_id}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {dateStr && <Badge variant="secondary" className="text-[10px]">{dateStr}</Badge>}
+          {deal.total_units && <Badge variant="secondary" className="text-[10px]">{deal.total_units} units</Badge>}
+          {deal.radius && <Badge variant="secondary" className="text-[10px]">{deal.radius} mi</Badge>}
+          <Badge className="bg-accent/15 text-accent border-0 text-[10px] font-medium">
+            <MapPin className="h-3 w-3 mr-0.5" /> {comps.length} comps
+          </Badge>
+        </div>
+        {bedBreakdown.length > 0 && (
+          <div className="flex gap-2 text-[11px] text-muted-foreground">
+            {bedBreakdown.map((b) => <span key={b}>{b}</span>)}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {dateStr && <Badge variant="secondary" className="text-[10px]">{dateStr}</Badge>}
-            {deal.total_units && <Badge variant="secondary" className="text-[10px]">{deal.total_units} units</Badge>}
-            {deal.radius && <Badge variant="secondary" className="text-[10px]">{deal.radius} mi</Badge>}
-            <Badge className="bg-accent/15 text-accent border-0 text-[10px] font-medium">
-              <MapPin className="h-3 w-3 mr-0.5" /> {comps.length} comps
-            </Badge>
-          </div>
-          {bedBreakdown.length > 0 && (
-            <div className="flex gap-2 text-[11px] text-muted-foreground">
-              {bedBreakdown.map((b) => <span key={b}>{b}</span>)}
-            </div>
-          )}
-          <LazyMap
-            dealId={deal.id}
-            comps={comps}
-            dealAddress={displayAddr}
-            onExpand={() => setExpanded(true)}
-          />
-        </CardContent>
-      </Card>
-      {expanded && (
-        <FullMapModal open={expanded} onClose={() => setExpanded(false)} deal={deal} comps={comps} />
-      )}
-    </>
+        )}
+        <LazyMap
+          dealId={deal.id}
+          comps={comps}
+          dealAddress={displayAddr}
+          onExpand={onExpand}
+        />
+      </CardContent>
+    </Card>
   );
 }
 
