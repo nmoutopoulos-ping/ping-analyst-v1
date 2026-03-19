@@ -143,13 +143,16 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setMaxComps(template.max_comps?.toString() || "");
       const combos = new Set<string>();
       const counts: Record<string, number> = {};
+      const types: Record<string, UnitType> = {};
       (template.combos || []).forEach((c) => {
         const k = comboKey(c.bed, c.bath);
         combos.add(k);
         counts[k] = c.units;
+        types[k] = c.type || "Apartment";
       });
       setSelectedCombos(combos);
       setUnitCounts(counts);
+      setUnitTypes(types);
       setCommercialEnabled((template.commercial_spaces || []).length > 0);
       setCommercialSpaces(template.commercial_spaces || []);
     } else {
