@@ -448,9 +448,7 @@ export default function CompsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <main className="max-w-6xl mx-auto px-4 py-8">
+    <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Comp Map Catalog</h1>
           <p className="text-sm text-muted-foreground">Every RentCast search you've run, mapped.</p>
