@@ -6,11 +6,12 @@ import DealsPage from "@/pages/DealsPage";
 import DealDetailPage from "@/pages/DealDetailPage";
 import AnalysisPage from "@/pages/AnalysisPage";
 import SettingsPage from "@/pages/SettingsPage";
+import ExtensionPage from "@/pages/ExtensionPage";
 import NotFound from "@/pages/NotFound";
 
 const App = () => (
   <>
-    <Toaster />
+    <Toaster /
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -19,7 +20,7 @@ const App = () => (
         <Route path="/deals/:id" element={<AuthGuard><DealDetailPage /></AuthGuard>} />
         <Route path="/analysis" element={<AuthGuard><AnalysisPage /></AuthGuard>} />
         <Route path="/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
-        <Route path="/extension" element={<Navigate to="/deals" replace />} />
+                <Route path="/extension" element={<AuthGuard><ExtensionPage /></AuthGuard>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
