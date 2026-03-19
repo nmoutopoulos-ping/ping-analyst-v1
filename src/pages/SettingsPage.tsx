@@ -121,7 +121,6 @@ export default function SettingsPage() {
       setTemplates((prev) => [created, ...prev]);
       setSelectedTemplateId(created.id);
       setNewTemplateName("");
-      setShowSaveAs(false);
       toast({ title: "Template saved", description: `"${created.name}" created.` });
     } catch {
       toast({ title: "Error", description: "Failed to save template.", variant: "destructive" });
