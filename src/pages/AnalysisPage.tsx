@@ -53,6 +53,7 @@ export default function AnalysisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [runningId, setRunningId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
