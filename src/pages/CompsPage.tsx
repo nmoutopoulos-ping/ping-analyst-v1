@@ -251,7 +251,7 @@ function FullMapModal({ open, onClose, deal, comps }: {
         {/* Filters */}
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border flex-wrap bg-background">
           <span className="text-xs font-medium text-muted-foreground mr-1">Beds:</span>
-          {["all", "0", "1", "2", "3+"].map((v) => (
+          {["all", ...["0", "1", "2", "3+"].filter((v) => availableBeds.has(v))].map((v) => (
             <button
               key={v}
               onClick={() => setBedFilter(v)}
@@ -261,7 +261,7 @@ function FullMapModal({ open, onClose, deal, comps }: {
             </button>
           ))}
           <span className="text-xs font-medium text-muted-foreground ml-3 mr-1">Status:</span>
-          {["all", "active", "inactive"].map((v) => (
+          {["all", ...["active", "inactive"].filter((v) => availableStatuses.has(v))].map((v) => (
             <button
               key={v}
               onClick={() => setStatusFilter(v)}
