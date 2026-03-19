@@ -8,7 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate } from "@/lib/types";
+import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate, UnitType } from "@/lib/types";
+import { UNIT_TYPES } from "@/lib/types";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetAssumptionTemplates } from "@/lib/supabase";
 
@@ -71,6 +72,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const [sqft, setSqft] = useState<string>("");
   const [selectedCombos, setSelectedCombos] = useState<Set<string>>(new Set());
   const [unitCounts, setUnitCounts] = useState<Record<string, number>>({});
+  const [unitTypes, setUnitTypes] = useState<Record<string, UnitType>>({});
   const [radius, setRadius] = useState<string>("0.5");
   const [minComps, setMinComps] = useState<string>("");
   const [maxComps, setMaxComps] = useState<string>("");
@@ -141,13 +143,16 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setMaxComps(template.max_comps?.toString() || "");
       const combos = new Set<string>();
       const counts: Record<string, number> = {};
+      const types: Record<string, UnitType> = {};
       (template.combos || []).forEach((c) => {
         const k = comboKey(c.bed, c.bath);
         combos.add(k);
         counts[k] = c.units;
+        types[k] = c.type || "Apartment";
       });
       setSelectedCombos(combos);
       setUnitCounts(counts);
+      setUnitTypes(types);
       setCommercialEnabled((template.commercial_spaces || []).length > 0);
       setCommercialSpaces(template.commercial_spaces || []);
     } else {
@@ -160,6 +165,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setSqft("");
       setSelectedCombos(new Set());
       setUnitCounts({});
+      setUnitTypes({});
       setRadius("0.5");
       setMinComps("");
       setMaxComps("");
@@ -180,9 +186,13 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       const nextCounts = { ...unitCounts };
       delete nextCounts[k];
       setUnitCounts(nextCounts);
+      const nextTypes = { ...unitTypes };
+      delete nextTypes[k];
+      setUnitTypes(nextTypes);
     } else {
       next.add(k);
       setUnitCounts((prev) => ({ ...prev, [k]: 1 }));
+      setUnitTypes((prev) => ({ ...prev, [k]: "Apartment" }));
     }
     setSelectedCombos(next);
   };
@@ -193,7 +203,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     const combos: UnitCombo[] = [];
     selectedCombos.forEach((k) => {
       const [bed, bath] = k.split("-").map(Number);
-      combos.push({ bed, bath, units: unitCounts[k] || 1 });
+      combos.push({ bed, bath, units: unitCounts[k] || 1, type: unitTypes[k] || "Apartment" });
     });
     return {
       name,
@@ -394,16 +404,29 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                   {Array.from(selectedCombos).map((k) => {
                     const [bed, bath] = k.split("-").map(Number);
                     return (
-                      <div key={k} className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2">
-                        <span className="text-sm text-foreground">
+                      <div key={k} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2">
+                        <span className="text-sm text-foreground whitespace-nowrap">
                           {bedLabel(bed)} {bed}bd/{bath}ba
                         </span>
+                        <Select
+                          value={unitTypes[k] || "Apartment"}
+                          onValueChange={(v) => setUnitTypes((prev) => ({ ...prev, [k]: v as UnitType }))}
+                        >
+                          <SelectTrigger className="h-8 w-40 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {UNIT_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Input
                           type="number"
                           min={1}
                           value={unitCounts[k] ?? 1}
                           onChange={(e) => setUnitCounts((prev) => ({ ...prev, [k]: Number(e.target.value) || 0 }))}
-                          className="w-20 text-center"
+                          className="w-20 text-center ml-auto"
                         />
                       </div>
                     );
