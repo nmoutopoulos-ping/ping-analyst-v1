@@ -253,7 +253,7 @@ export default function SettingsPage() {
                           </div>
                         ) : (
                           <button
-                            onClick={() => loadTemplate(t.id)}
+                            onClick={() => selectTemplate(t.id)}
                             className="flex items-center gap-2 text-left text-foreground hover:text-primary transition-colors"
                           >
                             {t.name}
