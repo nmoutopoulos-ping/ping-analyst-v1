@@ -1,6 +1,7 @@
-import { Plus, FileText, Settings, MapPin } from "lucide-react";
+import { Plus, FileText, Settings, MapPin, Puzzle } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +22,10 @@ const navItems = [
   { title: "Assumptions", url: "/settings", icon: Settings },
 ];
 
+const bottomNavItems = [
+  { title: "Extension", url: "/extension", icon: Puzzle },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -35,7 +40,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
                     <NavLink
                       to={item.url}
                       end={false}
@@ -53,6 +62,27 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          {bottomNavItems.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive(item.url)}
+                tooltip={item.title}
+              >
+                <NavLink
+                  to={item.url}
+                  end={false}
+                  className="hover:bg-sidebar-accent"
+                  activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {!collapsed && <span>{item.title}</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
         <SidebarTrigger className="w-full justify-start" />
       </SidebarFooter>
     </Sidebar>
