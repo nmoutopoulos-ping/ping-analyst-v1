@@ -97,7 +97,7 @@ export default function ProfilePage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
-                  href="https://chromewebstore.google.com"
+                  href="/extension"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
