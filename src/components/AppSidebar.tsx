@@ -29,8 +29,8 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent className="pt-4">
+    <Sidebar collapsible="icon" className="flex flex-col">
+      <SidebarContent className="flex-1 pt-4">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -57,17 +57,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="mt-auto border-t border-sidebar-border p-2">
         <button
           onClick={toggleSidebar}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2.5 text-sm text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
         >
           {collapsed ? (
-            <PanelLeftOpen className="h-5 w-5" />
+            <PanelLeftOpen className="h-5 w-5 mx-auto" />
           ) : (
             <>
               <PanelLeftClose className="h-5 w-5" />
-              <span>Collapse</span>
+              <span>Collapse sidebar</span>
             </>
           )}
         </button>
