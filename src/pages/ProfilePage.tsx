@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Chrome, Download, ExternalLink, User } from "lucide-react";
-import { clearAuth, getUserName, getUserEmail } from "@/lib/api";
+import { LogOut, Chrome, Download, ExternalLink, User, Key, Eye, EyeOff, Check } from "lucide-react";
+import { clearAuth, getUserName, getUserEmail, getApiKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
@@ -13,6 +14,42 @@ export default function ProfilePage() {
   const handleSignOut = () => {
     clearAuth();
     navigate("/login");
+  };
+
+  const API_BASE = "https://analyst-ra00.onrender.com";
+  const [extPassword, setExtPassword] = useState("");
+  const [extConfirm, setExtConfirm] = useState("");
+  const [extStatus, setExtStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [extError, setExtError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSaveExtPassword = async () => {
+    if (extPassword.length < 4) {
+      setExtError("Password must be at least 4 characters");
+      return;
+    }
+    if (extPassword !== extConfirm) {
+      setExtError("Passwords do not match");
+      return;
+    }
+    setExtStatus("saving");
+    setExtError("");
+    try {
+      const res = await fetch(API_BASE + "/extension/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "X-Api-Key": getApiKey() || "" },
+        body: JSON.stringify({ password: extPassword }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Failed to save");
+      setExtStatus("saved");
+      setExtPassword("");
+      setExtConfirm("");
+      setTimeout(() => setExtStatus("idle"), 3000);
+    } catch (e: any) {
+      setExtError(e.message);
+      setExtStatus("error");
+    }
   };
 
   return (
@@ -89,6 +126,61 @@ export default function ProfilePage() {
               <li>Review pre-filled data and hit <strong>Run Analysis</strong>.</li>
               <li>Results appear in your Deals dashboard.</li>
             </ol>
+          </div>
+        </div>
+
+        {/* Extension Password */}
+        <div className="mt-6 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Key className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-foreground">Extension Password</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Set a password to sign in to the Chrome extension. This is separate from your CRM login.
+              </p>
+              <div className="mt-3 space-y-3 max-w-sm">
+                <div>
+                  <label className="label-uppercase mb-1 block text-xs">New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={extPassword}
+                      onChange={(e) => setExtPassword(e.target.value)}
+                      placeholder="At least 4 characters"
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="label-uppercase mb-1 block text-xs">Confirm Password</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={extConfirm}
+                    onChange={(e) => setExtConfirm(e.target.value)}
+                    placeholder="Re-enter password"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                {extError && <p className="text-xs text-destructive">{extError}</p>}
+                <Button
+                  onClick={handleSaveExtPassword}
+                  disabled={extStatus === "saving"}
+                  className="gap-1.5"
+                  size="sm"
+                >
+                  {extStatus === "saving" ? "Saving…" : extStatus === "saved" ? <><Check className="h-3.5 w-3.5" /> Saved</> : "Save Extension Password"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
