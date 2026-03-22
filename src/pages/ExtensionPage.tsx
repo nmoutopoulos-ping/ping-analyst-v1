@@ -1,31 +1,8 @@
-import { useState } from "react";
-import { Download, Chrome, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Download, Chrome } from "lucide-react";
 
 const API_BASE = "https://analyst-ra00.onrender.com";
 
 export default function ExtensionPage() {
-  const [status, setStatus] = useState<"idle" | "downloading" | "done" | "error">("idle");
-
-  const handleDownload = async () => {
-    setStatus("downloading");
-    try {
-      const res = await fetch(API_BASE + "/api/extension-zip");
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "ping-analyst-extension.zip";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setStatus("done");
-    } catch {
-      setStatus("error");
-    }
-  };
-
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-2xl font-bold text-foreground">Chrome Extension</h1>
@@ -49,32 +26,14 @@ export default function ExtensionPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleDownload}
-                disabled={status === "downloading"}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+              <a
+                href={API_BASE + "/api/extension-zip"}
+                download="ping-analyst-extension.zip"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                {status === "downloading" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                {status === "downloading"
-                  ? "Downloading..."
-                  : "Download Extension"}
-              </button>
-
-              {status === "done" && (
-                <span className="inline-flex items-center gap-1.5 text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4" /> Downloaded!
-                </span>
-              )}
-              {status === "error" && (
-                <span className="inline-flex items-center gap-1.5 text-sm text-red-500">
-                  <AlertCircle className="h-4 w-4" /> Download failed — try
-                  again.
-                </span>
-              )}
+                <Download className="h-4 w-4" />
+                Download Extension
+              </a>
             </div>
           </div>
         </div>
