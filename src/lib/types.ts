@@ -39,12 +39,12 @@ export interface Deal {
 
 export interface Assumptions {
   ltv: number;
-  closing_pct: number;
+  closingPct: number;
   vacancy: number;
-  opex_ratio: number;
-  int_rate: number;
-  rent_growth_1: number;
-  other_inc_mo: number;
+  opexRatio: number;
+  intRate: number;
+  rentGrowth1: number;
+  otherIncMo: number;
 }
 
 export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "Duplex", "Triplex", "Multi Family"] as const;
