@@ -185,13 +185,23 @@ export async function supabaseCreateTemplate(
   email: string,
   template: Record<string, unknown>
 ) {
-  await _ensureValidToken();
+  const valid = await _ensureValidToken();
+  if (!valid) console.warn("[supabaseCreateTemplate] No valid auth session — request may fail");
+  const body = { api_key: apiKey, email, ...template };
+  // Remove nested api_key duplication from template data
+  delete body.api_key;
+  body.api_key = apiKey;
+  console.log("[supabaseCreateTemplate] Sending body keys:", Object.keys(body));
   const res = await fetch(`${SB_URL}/rest/v1/templates`, {
     method: "POST",
     headers: { ..._headers(), "Prefer": "return=representation" },
-    body: JSON.stringify({ api_key: apiKey, email, ...template }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error("Failed to create template");
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error("[supabaseCreateTemplate] Error:", res.status, errBody);
+    throw new Error(`Failed to create template (${res.status}): ${errBody}`);
+  }
   return res.json();
 }
 
