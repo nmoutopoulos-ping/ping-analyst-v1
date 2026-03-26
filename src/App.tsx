@@ -10,6 +10,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import ExtensionPage from "@/pages/ExtensionPage";
 import ProfilePage from "@/pages/ProfilePage";
 import CompsPage from "@/pages/CompsPage";
+import AdminPage from "@/pages/AdminPage";
 import NotFound from "@/pages/NotFound";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
