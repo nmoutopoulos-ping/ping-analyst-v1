@@ -1,95 +1,102 @@
-import { useState, useEffect } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2 } from "lucide-react";
-import { setAuth } from "@/lib/api";
-import { supabaseLogin } from "@/lib/supabase";
+import { supabaseLogin } from "../lib/supabase";
 
 export default function LoginPage() {
-  // Warm up the Render server as soon as the login page loads
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || "https://analyst-ra00.onrender.com"}/health`)
-      .catch(() => {}); // fire-and-forget, ignore errors
-  }, []);
-
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      const user = await supabaseLogin(email, apiKey);
-      if (user) {
-        setAuth(apiKey, user.name, user.email);
-        navigate("/deals");
-      } else {
-        setError("Invalid credentials. Please try again.");
+      const result = await supabaseLogin(email, password);
+
+      if (!result.ok) {
+        setError(result.error || "Login failed");
+        setLoading(false);
+        return;
       }
-    } catch {
-      setError("Login failed. Check your credentials and try again.");
-    } finally {
+
+      // Store apiKey and name so other pages can access them
+      if (result.apiKey) {
+        localStorage.setItem("apiKey", result.apiKey);
+      }
+      if (result.name) {
+        localStorage.setItem("userName", result.name);
+      }
+
+      navigate("/deals");
+    } catch (err) {
+      setError("An unexpected error occurred");
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Ping Analyst</h1>
-          <p className="text-sm text-muted-foreground">Real estate underwriting</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div>
+          <h2 className="text-center text-3xl font-bold text-gray-900">
+            Ping Analyst
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Sign in to your account
+          </p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="mb-1 text-lg font-semibold text-card-foreground">Sign in</h2>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Enter your email and access code to continue.
-          </p>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-4">
             <div>
-              <label className="label-uppercase mb-1.5 block">Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
               <input
+                id="email"
                 type="email"
-                placeholder="you@example.com"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                required
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="you@example.com"
               />
             </div>
+
             <div>
-              <label className="label-uppercase mb-1.5 block">Access Code</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
               <input
-                type="text"
-                placeholder="PING-XXXX-XXXXX"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                id="password"
+                type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your password"
               />
             </div>
+          </div>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
       </div>
     </div>
   );
