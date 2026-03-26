@@ -26,10 +26,14 @@ export default function LoginPage() {
       // Store apiKey and name so other pages can access them
       if (result.apiKey) {
         localStorage.setItem("apiKey", result.apiKey);
+        localStorage.setItem("ping_api_key", result.apiKey);
       }
       if (result.name) {
         localStorage.setItem("userName", result.name);
+        localStorage.setItem("ping_user_name", result.name);
       }
+      localStorage.setItem("ping_user_email", email);
+      localStorage.setItem("userEmail", email);
 
       navigate("/deals");
     } catch (err) {
