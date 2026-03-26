@@ -209,7 +209,8 @@ export async function supabaseUpdateTemplate(
   id: string,
   updates: Record<string, unknown>
 ) {
-  await _ensureValidToken();
+  const valid = await _ensureValidToken();
+  if (!valid) console.warn("[supabaseUpdateTemplate] No valid auth session");
   const res = await fetch(
     `${SB_URL}/rest/v1/templates?id=eq.${encodeURIComponent(id)}`,
     {
@@ -218,7 +219,11 @@ export async function supabaseUpdateTemplate(
       body: JSON.stringify(updates),
     }
   );
-  if (!res.ok) throw new Error("Failed to update template");
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error("[supabaseUpdateTemplate] Error:", res.status, errBody);
+    throw new Error(`Failed to update template (${res.status}): ${errBody}`);
+  }
   return res.json();
 }
 
@@ -228,7 +233,11 @@ export async function supabaseDeleteTemplate(id: string) {
     `${SB_URL}/rest/v1/templates?id=eq.${encodeURIComponent(id)}`,
     { method: "DELETE", headers: _headers() }
   );
-  if (!res.ok) throw new Error("Failed to delete template");
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error("[supabaseDeleteTemplate] Error:", res.status, errBody);
+    throw new Error(`Failed to delete template (${res.status}): ${errBody}`);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
