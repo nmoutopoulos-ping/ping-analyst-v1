@@ -1,5 +1,10 @@
-// sidepanel.js — Ping Analyst v2.1
+// sidepanel.js — Ping Analyst v3.0 (Supabase-direct)
 const $ = id => document.getElementById(id);
+
+// ── Supabase config ──────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://knimxvcbrtkuhsuovasu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaW14dmNicnRrdWhzdW92YXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDEyNjAsImV4cCI6MjA4OTE3NzI2MH0.g3Gcz-c41C9jnxy5Gba_jzrV1ATjy5_Wr5yaIXOHY8M";
+const RENDER_URL = "https://analyst-ra00.onrender.com";
 
 // ── USD Formatting ─────────────────────────────────────────────────────────────
 function parseUSD(val) { return String(val).replace(/[^0-9.]/g, ""); }
@@ -217,63 +222,132 @@ async function geocodeAddress(address) {
   } catch (_) {} finally { $("addrSpinner").className = "addr-spinner"; }
 }
 
-// ── Server URL ───────────────────────────────────────────────────────────────
-const SERVER_URL = "https://analyst-ra00.onrender.com";
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUTH — Supabase Auth (email/password)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// ── Auth state ────────────────────────────────────────────────────────────────
 let currentApiKey = null;
 let currentUserName = null;
+let accessToken = null;      // Supabase JWT
+let refreshToken = null;
+let tokenExpiresAt = 0;
 
-function isSignedIn() { return !!currentApiKey; }
+function isSignedIn() { return !!accessToken && !!currentApiKey; }
+
+// ── Supabase REST helpers ────────────────────────────────────────────────────
+
+function sbHeaders(auth = true) {
+  const h = {
+    "Content-Type": "application/json",
+    "apikey": SUPABASE_ANON_KEY,
+  };
+  if (auth && accessToken) h["Authorization"] = `Bearer ${accessToken}`;
+  return h;
+}
+
+async function sbFetch(path, opts = {}) {
+  const url = `${SUPABASE_URL}${path}`;
+  const res = await fetch(url, { headers: sbHeaders(opts.auth !== false), ...opts });
+  return res;
+}
+
+async function sbGet(table, query = "") {
+  const res = await sbFetch(`/rest/v1/${table}?${query}`);
+  if (!res.ok) throw new Error(`Supabase ${table} query failed: ${res.status}`);
+  return res.json();
+}
+
+// ── Token management ─────────────────────────────────────────────────────────
 
 function getSavedAuth() {
   return new Promise(resolve => {
-    chrome.storage.local.get(["ext_api_key", "ext_user_name", "ext_email"], resolve);
+    chrome.storage.local.get(
+      ["sb_access_token", "sb_refresh_token", "sb_expires_at", "sb_api_key", "sb_user_name", "sb_email"],
+      resolve
+    );
   });
 }
 
-function saveAuth(apiKey, name, email) {
+function saveAuth(access, refresh, expiresAt, apiKey, name, email) {
+  accessToken = access;
+  refreshToken = refresh;
+  tokenExpiresAt = expiresAt;
   currentApiKey = apiKey;
   currentUserName = name;
-  chrome.storage.local.set({ ext_api_key: apiKey, ext_user_name: name, ext_email: email });
+  chrome.storage.local.set({
+    sb_access_token: access,
+    sb_refresh_token: refresh,
+    sb_expires_at: expiresAt,
+    sb_api_key: apiKey,
+    sb_user_name: name,
+    sb_email: email,
+  });
 }
 
 function clearSavedAuth() {
+  accessToken = null;
+  refreshToken = null;
+  tokenExpiresAt = 0;
   currentApiKey = null;
   currentUserName = null;
-  chrome.storage.local.remove(["ext_api_key", "ext_user_name", "ext_email"]);
+  chrome.storage.local.remove([
+    "sb_access_token", "sb_refresh_token", "sb_expires_at",
+    "sb_api_key", "sb_user_name", "sb_email",
+  ]);
 }
 
-// ── View switching ────────────────────────────────────────────────────────────
+async function refreshSession() {
+  if (!refreshToken) return false;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const meta = data.user?.user_metadata || {};
+    saveAuth(
+      data.access_token,
+      data.refresh_token,
+      Date.now() + (data.expires_in * 1000),
+      meta.api_key || currentApiKey,
+      meta.name || currentUserName,
+      data.user?.email || ""
+    );
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function ensureValidToken() {
+  if (Date.now() < tokenExpiresAt - 60000) return true; // still valid (1 min buffer)
+  return refreshSession();
+}
+
+// ── Sign-in / sign-out ───────────────────────────────────────────────────────
+
 function switchView(viewId) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   $(viewId).classList.add("active");
 }
 
-// ── Sign-in UI ────────────────────────────────────────────────────────────────
 function showSignedIn(name) {
-  // Update header user info
   const displayName = name || "User";
   $("headerUserName").textContent = displayName;
   $("headerUserAvatar").textContent = displayName.charAt(0).toUpperCase();
-
-  // Show templates and load them
   $("templatesCard").style.display = "";
   loadTemplates();
-
-  // Switch to the main search view
   switchView("viewSearch");
 }
 
 function showSignedOut() {
-  // Clear sign-in form
   $("signInEmail").value = "";
   $("signInPassword").value = "";
   $("signInError").style.display = "none";
   $("signInBtn").disabled = false;
   $("signInBtn").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In`;
-
-  // Switch to sign-in view
   switchView("viewSignIn");
 }
 
@@ -292,16 +366,33 @@ async function handleSignIn() {
   $("signInError").style.display = "none";
 
   try {
-    const res = await fetch(SERVER_URL + "/extension/login", {
+    // Sign in via Supabase Auth
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY },
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error || "Sign-in failed");
 
-    saveAuth(data.api_key, data.name, data.email);
-    showSignedIn(data.name);
+    if (!res.ok || data.error) {
+      throw new Error(data.error_description || data.msg || "Sign-in failed");
+    }
+
+    const meta = data.user?.user_metadata || {};
+    saveAuth(
+      data.access_token,
+      data.refresh_token,
+      Date.now() + (data.expires_in * 1000),
+      meta.api_key,
+      meta.name,
+      data.user?.email
+    );
+
+    // Load presets from Supabase now that we're authenticated
+    await loadPresets();
+    renderSearchPresetSelect();
+
+    showSignedIn(meta.name);
   } catch (e) {
     $("signInError").textContent = e.message || "Sign-in failed. Check your credentials.";
     $("signInError").style.display = "";
@@ -312,22 +403,186 @@ async function handleSignIn() {
 
 function handleSignOut() {
   clearSavedAuth();
+  assumptionPresets = [];
+  defaultPresetName = "";
+  searchActivePreset = "";
   showSignedOut();
 }
 
-// ── Templates ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// ASSUMPTION PRESETS — Read from Supabase (managed in CRM)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const PRESET_FIELD_CONFIG = [
+  { key:"ltv",        label:"Loan-to-Value (LTV)",      step:"1",   min:"1",   max:"100", pct:true },
+  { key:"closingPct", label:"Closing Costs",             step:"0.5", min:"0",   max:"20",  pct:true },
+  { key:"vacancy",    label:"Vacancy Rate",              step:"1",   min:"0",   max:"50",  pct:true },
+  { key:"opexRatio",  label:"OPEX Ratio",                step:"1",   min:"0",   max:"100", pct:true },
+  { key:"intRate",    label:"Interest Rate (IO, Yr 1)",  step:"0.1", min:"0",   max:"30",  pct:true },
+  { key:"rentGrowth1",label:"Year-1 Rent Growth",        step:"0.5", min:"-10", max:"20",  pct:true },
+  { key:"otherIncMo", label:"Other Income / Unit / Mo",  step:"5",   min:"0",   max:"500", pct:false, prefix:"$" },
+];
+
+const SEED_PRESETS = [
+  { name:"Conservative", ltv:0.65, closingPct:0.03, vacancy:0.10, opexRatio:0.40, intRate:0.07,  rentGrowth1:0.02, otherIncMo:50  },
+  { name:"Standard",     ltv:0.70, closingPct:0.02, vacancy:0.07, opexRatio:0.35, intRate:0.065, rentGrowth1:0.03, otherIncMo:75  },
+  { name:"Aggressive",   ltv:0.80, closingPct:0.015,vacancy:0.05, opexRatio:0.30, intRate:0.060, rentGrowth1:0.05, otherIncMo:100 },
+];
+
+let assumptionPresets = [];
+let defaultPresetName = "";
+let searchActivePreset = "";
+let settingsSelected = "";
+
+async function loadPresets() {
+  // Fetch assumption presets from Supabase for this user
+  try {
+    await ensureValidToken();
+    const rows = await sbGet(
+      "assumption_templates",
+      `api_key=eq.${encodeURIComponent(currentApiKey)}&select=name,assumptions,is_default&order=created_at.asc`
+    );
+
+    if (rows.length > 0) {
+      // Flatten: merge assumptions JSONB into top-level keys
+      assumptionPresets = rows.map(r => ({
+        name: r.name,
+        ...r.assumptions,
+        _isDefault: r.is_default,
+      }));
+      const def = rows.find(r => r.is_default);
+      defaultPresetName = def ? def.name : rows[0].name;
+    } else {
+      // No presets in DB yet — fall back to seed defaults
+      assumptionPresets = SEED_PRESETS.map(p => ({ ...p }));
+      defaultPresetName = assumptionPresets[0].name;
+    }
+    searchActivePreset = defaultPresetName;
+    settingsSelected = defaultPresetName;
+  } catch (e) {
+    console.warn("Failed to load presets from Supabase, using seed defaults:", e);
+    assumptionPresets = SEED_PRESETS.map(p => ({ ...p }));
+    defaultPresetName = assumptionPresets[0].name;
+    searchActivePreset = defaultPresetName;
+    settingsSelected = defaultPresetName;
+  }
+}
+
+function getPreset(name) { return assumptionPresets.find(p => p.name === name) || assumptionPresets[0]; }
+
+function fmtPresetVal(key, val) {
+  const cfg = PRESET_FIELD_CONFIG.find(c => c.key === key);
+  if (!cfg) return String(val);
+  if (cfg.pct) {
+    const pct = val * 100;
+    const decimals = (pct % 1 === 0) ? 0 : 1;
+    return pct.toFixed(decimals).replace(/\.0$/, "") + "%";
+  }
+  return "$" + val;
+}
+
+// ── Search preset selector ───────────────────────────────────────────────────
+function renderSearchPresetSelect() {
+  const sel = $("searchPresetSelect");
+  if (!sel) return;
+  const prev = sel.value || searchActivePreset;
+  sel.innerHTML = "";
+  assumptionPresets.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p.name;
+    o.textContent = p.name + (p.name === defaultPresetName ? " (Default)" : "");
+    if (p.name === prev) o.selected = true;
+    sel.appendChild(o);
+  });
+  if (!sel.value && assumptionPresets.length) sel.value = assumptionPresets[0].name;
+}
+
+$("searchPresetSelect").addEventListener("change", function () {
+  searchActivePreset = this.value;
+});
+
+$("openSettingsBtn").addEventListener("click", () => {
+  settingsSelected = searchActivePreset || defaultPresetName;
+  switchView("viewSettings");
+  renderSettingsList();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SETTINGS VIEW — Read-only (presets managed in CRM)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+$("settingsBackBtn").addEventListener("click", () => {
+  switchView("viewSearch");
+  renderSearchPresetSelect();
+});
+
+function renderSettingsList() {
+  // Hide edit section, show main
+  $("presetMainSection").classList.remove("off");
+  if ($("presetEditSection")) $("presetEditSection").classList.remove("on");
+
+  const list = $("presetList");
+  list.innerHTML = "";
+
+  if (!assumptionPresets.length) {
+    list.innerHTML = '<div class="templates-empty">No presets found. Create presets in the CRM.</div>';
+    return;
+  }
+
+  assumptionPresets.forEach(p => {
+    const isDefault = p.name === defaultPresetName;
+    const isSelected = p.name === settingsSelected;
+    const item = document.createElement("div");
+    item.className = "preset-item" + (isSelected ? " active" : "");
+
+    const left = document.createElement("div"); left.className = "preset-item-left";
+    const nameEl = document.createElement("div"); nameEl.className = "preset-item-name"; nameEl.textContent = p.name;
+    left.appendChild(nameEl);
+    if (isDefault) {
+      const defEl = document.createElement("div"); defEl.className = "preset-default-label"; defEl.textContent = "Default";
+      left.appendChild(defEl);
+    }
+    left.addEventListener("click", () => { settingsSelected = p.name; renderSettingsList(); });
+
+    item.appendChild(left);
+    list.appendChild(item);
+  });
+  renderPresetValues();
+}
+
+function renderPresetValues() {
+  const p = getPreset(settingsSelected);
+  if (!p) return;
+  $("presetValuesTitle").textContent = p.name;
+  const grid = $("presetValuesGrid");
+  grid.innerHTML = "";
+  PRESET_FIELD_CONFIG.forEach(cfg => {
+    const box = document.createElement("div"); box.className = "pvb";
+    box.innerHTML = `<div class="pvb-label">${cfg.label}</div><div class="pvb-value">${fmtPresetVal(cfg.key, p[cfg.key])}</div>`;
+    grid.appendChild(box);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATES — Read from Supabase (with full combo/commercial restoration)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 async function loadTemplates() {
   const list = $("templatesList");
   list.innerHTML = '<div class="templates-empty">Loading templates...</div>';
   try {
-    const res = await fetch(SERVER_URL + "/crm/templates?api_key=" + encodeURIComponent(currentApiKey));
-    const data = await res.json();
-    if (!data.ok || !data.templates || data.templates.length === 0) {
-      list.innerHTML = '<div class="templates-empty">No saved templates yet. Start a new search below.</div>';
+    await ensureValidToken();
+    const templates = await sbGet(
+      "templates",
+      `api_key=eq.${encodeURIComponent(currentApiKey)}&select=*&order=created_at.desc`
+    );
+
+    if (!templates || templates.length === 0) {
+      list.innerHTML = '<div class="templates-empty">No saved templates yet. Create templates in the CRM.</div>';
       return;
     }
     list.innerHTML = "";
-    data.templates.forEach(t => {
+    templates.forEach(t => {
       const el = document.createElement("div");
       el.className = "template-item";
       el.innerHTML = '<div><div class="template-name">' + (t.name || "Untitled") + '</div><div class="template-address">' + (t.address || "") + '</div></div>' + '<span class="template-arrow">&#8250;</span>';
@@ -335,47 +590,123 @@ async function loadTemplates() {
       list.appendChild(el);
     });
   } catch (e) {
+    console.warn("Failed to load templates:", e);
     list.innerHTML = '<div class="templates-empty">Could not load templates.</div>';
   }
 }
 
 function applyTemplate(t) {
+  // ── Basic fields ──
   if (t.address) $("address").value = t.address;
-  if (t.price)   $("price").value = t.price;
-  if (t.cost)    $("cost").value = t.cost;
+  if (t.price)   $("price").value = formatUSD(String(t.price));
+  if (t.improvements) $("cost").value = formatUSD(String(t.improvements));
   if (t.sqft)    $("sqft").value = t.sqft;
   if (t.radius)  $("radius").value = t.radius;
-  if (t.minComps) $("minComps").value = t.minComps;
-  if (t.maxComps) $("maxComps").value = t.maxComps;
+  if (t.min_comps) $("minComps").value = t.min_comps;
+  if (t.max_comps) $("maxComps").value = t.max_comps;
+  if (t.status)  $("status").value = t.status;
+
+  // ── Geocode the address ──
+  if (t.lat && t.lng) {
+    resolvedCoords = { lat: t.lat, lng: t.lng };
+    resolvedAddress = t.address;
+    $("coordsText").textContent = `${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}`;
+    $("coordsPill").className = "coords-pill on";
+  } else if (t.address) {
+    geocodeAddress(t.address);
+  }
+
+  // ── Restore unit mix combos ──
+  // Clear existing selections
+  selectedCombos = [];
+  document.querySelectorAll(".combo-cb").forEach(cb => {
+    cb.checked = false; cb.disabled = false;
+    cb.closest(".cb-cell")?.classList.remove("sel");
+  });
+
+  if (t.combos && Array.isArray(t.combos)) {
+    t.combos.forEach(c => {
+      // DB uses "bed"/"bath", extension uses "beds"/"baths"
+      const beds = c.beds ?? c.bed;
+      const baths = c.baths ?? c.bath;
+      const units = c.units || "";
+      const type = c.type || TYPES[beds] || "Unknown";
+
+      selectedCombos.push({ beds, baths, type, units: String(units) });
+
+      // Check the corresponding checkbox in the matrix
+      const cb = $(`cb_${beds}_${baths}`);
+      if (cb) {
+        cb.checked = true;
+        cb.closest(".cb-cell")?.classList.add("sel");
+      }
+    });
+  }
+  updateMatrixBadge();
+  updateUnitsPanel();
+
+  // Disable extra checkboxes if at max
+  document.querySelectorAll(".combo-cb").forEach(c => {
+    if (!c.checked) c.disabled = selectedCombos.length >= MAX_COMBOS;
+  });
+
+  // ── Restore commercial spaces ──
+  selectedCommercial = [];
+  if (t.commercial_spaces && Array.isArray(t.commercial_spaces) && t.commercial_spaces.length > 0) {
+    selectedCommercial = t.commercial_spaces.map(s => ({
+      type: s.type || COMMERCIAL_TYPES[0],
+      sqft: String(s.sqft || ""),
+      rentPerSF: String(s.rentPerSF || s.rent_per_sf || ""),
+    }));
+    $("commercialToggle").checked = true;
+    $("commercialPanel").classList.add("on");
+    renderCommercialPanel();
+  } else {
+    $("commercialToggle").checked = false;
+    $("commercialPanel").classList.remove("on");
+  }
+
+  // Hide templates card and scroll to form
   $("templatesCard").style.display = "none";
   $("address").scrollIntoView({ behavior: "smooth" });
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 async function loadSettings() {
   // Wire sign-in
   $("signInBtn").addEventListener("click", handleSignIn);
   $("signOutBtn").addEventListener("click", handleSignOut);
   $("newSearchBtn").addEventListener("click", () => { $("templatesCard").style.display = "none"; });
 
-  // Allow Enter to submit sign-in
+  // Enter to submit sign-in
   $("signInPassword").addEventListener("keydown", e => { if (e.key === "Enter") handleSignIn(); });
   $("signInEmail").addEventListener("keydown", e => { if (e.key === "Enter") handleSignIn(); });
 
-  // Check saved auth
+  // Check saved auth — try to restore session
   const saved = await getSavedAuth();
-  if (saved.ext_api_key) {
-    currentApiKey = saved.ext_api_key;
-    currentUserName = saved.ext_user_name;
-    showSignedIn(saved.ext_user_name);
+  if (saved.sb_access_token && saved.sb_refresh_token) {
+    accessToken = saved.sb_access_token;
+    refreshToken = saved.sb_refresh_token;
+    tokenExpiresAt = saved.sb_expires_at || 0;
+    currentApiKey = saved.sb_api_key;
+    currentUserName = saved.sb_user_name;
+
+    // Try to refresh the token silently
+    const valid = await ensureValidToken();
+    if (valid) {
+      await loadPresets();
+      renderSearchPresetSelect();
+      showSignedIn(currentUserName);
+    } else {
+      clearSavedAuth();
+      showSignedOut();
+    }
   } else {
     showSignedOut();
   }
-
-  // Load presets
-  loadPresetsStorage(() => {
-    renderSearchPresetSelect();
-  });
 }
 
 function getFormVals() {
@@ -413,7 +744,7 @@ function hideErr(id) { $(id).classList.remove("on"); }
 function validate(vals) {
   let ok = true;
 
-  if (!currentApiKey) {
+  if (!isSignedIn()) {
     $("formError").textContent = "You are not signed in. Please sign in first.";
     $("formError").className = "form-error on";
     return false;
@@ -443,7 +774,10 @@ function validate(vals) {
   return ok;
 }
 
-// ── Run ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// RUN ANALYSIS — Still hits the Render backend (the only backend call)
+// ═══════════════════════════════════════════════════════════════════════════════
+
 $("runBtn").addEventListener("click", async () => {
   const vals = getFormVals();
   $("formError").className = "form-error";
@@ -454,13 +788,13 @@ $("runBtn").addEventListener("click", async () => {
 
   const activeCommercial = $("commercialToggle").checked ? selectedCommercial : [];
 
+  // Save form state locally
   chrome.storage.sync.set({ ...vals, combos: selectedCombos, commercial: selectedCommercial, commercialToggle: $("commercialToggle").checked });
 
-  // Resolve which preset to use for this search
+  // Resolve which preset to use
   const chosenPresetName = $("searchPresetSelect")?.value || searchActivePreset || defaultPresetName;
   const chosenPreset = getPreset(chosenPresetName);
   searchActivePreset = chosenPresetName;
-  savePresetsStorage();
 
   try {
     const body = {
@@ -489,7 +823,7 @@ $("runBtn").addEventListener("click", async () => {
       preset_name: chosenPresetName,
     };
 
-    const res = await fetch(`${SERVER_URL}/trigger`, {
+    const res = await fetch(`${RENDER_URL}/trigger`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -571,7 +905,6 @@ function showResults(entry, vals) {
 
 $("backBtn").addEventListener("click", () => { switchView("viewSearch"); });
 
-// Wire both new search buttons (results view has newSearchBtn2)
 function handleNewSearch() {
   selectedCombos = [];
   document.querySelectorAll(".combo-cb").forEach(cb => {
@@ -613,248 +946,6 @@ function renderHistory() {
     });
   });
 }
-
-// ── Assumption Presets ───────────────────────────────────────────────────────
-const PRESET_FIELD_CONFIG = [
-  { key:"ltv",        label:"Loan-to-Value (LTV)",      step:"1",   min:"1",   max:"100", pct:true },
-  { key:"closingPct", label:"Closing Costs",             step:"0.5", min:"0",   max:"20",  pct:true },
-  { key:"vacancy",    label:"Vacancy Rate",              step:"1",   min:"0",   max:"50",  pct:true },
-  { key:"opexRatio",  label:"OPEX Ratio",                step:"1",   min:"0",   max:"100", pct:true },
-  { key:"intRate",    label:"Interest Rate (IO, Yr 1)",  step:"0.1", min:"0",   max:"30",  pct:true },
-  { key:"rentGrowth1",label:"Year-1 Rent Growth",        step:"0.5", min:"-10", max:"20",  pct:true },
-  { key:"otherIncMo", label:"Other Income / Unit / Mo",  step:"5",   min:"0",   max:"500", pct:false, prefix:"$" },
-];
-
-const SEED_PRESETS = [
-  { name:"Conservative", ltv:0.65, closingPct:0.03, vacancy:0.10, opexRatio:0.40, intRate:0.07,  rentGrowth1:0.02, otherIncMo:50  },
-  { name:"Standard",     ltv:0.70, closingPct:0.02, vacancy:0.07, opexRatio:0.35, intRate:0.065, rentGrowth1:0.03, otherIncMo:75  },
-  { name:"Aggressive",   ltv:0.80, closingPct:0.015,vacancy:0.05, opexRatio:0.30, intRate:0.060, rentGrowth1:0.05, otherIncMo:100 },
-];
-
-let assumptionPresets = [];
-let defaultPresetName = "";
-let searchActivePreset = "";
-let settingsSelected = "";
-let editingPreset = null;
-
-function loadPresetsStorage(cb) {
-  chrome.storage.sync.get(["assumptionPresets","defaultPresetName","searchActivePreset"], cfg => {
-    assumptionPresets = cfg.assumptionPresets?.length ? cfg.assumptionPresets : SEED_PRESETS.map(p => ({...p}));
-    defaultPresetName = cfg.defaultPresetName || assumptionPresets[0]?.name || "";
-    searchActivePreset = cfg.searchActivePreset || defaultPresetName;
-    settingsSelected = defaultPresetName;
-    if (cb) cb();
-  });
-}
-
-function savePresetsStorage() {
-  chrome.storage.sync.set({ assumptionPresets, defaultPresetName, searchActivePreset });
-}
-
-function getPreset(name) { return assumptionPresets.find(p => p.name === name) || assumptionPresets[0]; }
-
-function fmtPresetVal(key, val) {
-  const cfg = PRESET_FIELD_CONFIG.find(c => c.key === key);
-  if (!cfg) return String(val);
-  if (cfg.pct) {
-    const pct = val * 100;
-    const decimals = (pct % 1 === 0) ? 0 : 1;
-    return pct.toFixed(decimals).replace(/\.0$/, "") + "%";
-  }
-  return "$" + val;
-}
-
-// ── Search preset selector ───────────────────────────────────────────────────
-function renderSearchPresetSelect() {
-  const sel = $("searchPresetSelect");
-  if (!sel) return;
-  const prev = sel.value || searchActivePreset;
-  sel.innerHTML = "";
-  assumptionPresets.forEach(p => {
-    const o = document.createElement("option");
-    o.value = p.name;
-    o.textContent = p.name + (p.name === defaultPresetName ? " (Default)" : "");
-    if (p.name === prev) o.selected = true;
-    sel.appendChild(o);
-  });
-  if (!sel.value && assumptionPresets.length) sel.value = assumptionPresets[0].name;
-}
-
-$("searchPresetSelect").addEventListener("change", function () {
-  searchActivePreset = this.value;
-  savePresetsStorage();
-});
-
-$("openSettingsBtn").addEventListener("click", () => {
-  settingsSelected = searchActivePreset || defaultPresetName;
-  switchView("viewSettings");
-  renderSettingsList();
-});
-
-// ── Settings view ────────────────────────────────────────────────────────────
-$("settingsBackBtn").addEventListener("click", () => {
-  switchView("viewSearch");
-  renderSearchPresetSelect();
-});
-
-function renderSettingsList() {
-  $("presetMainSection").classList.remove("off");
-  $("presetEditSection").classList.remove("on");
-
-  const list = $("presetList");
-  list.innerHTML = "";
-  assumptionPresets.forEach(p => {
-    const isDefault = p.name === defaultPresetName;
-    const isSelected = p.name === settingsSelected;
-    const item = document.createElement("div");
-    item.className = "preset-item" + (isSelected ? " active" : "");
-
-    const left = document.createElement("div"); left.className = "preset-item-left";
-    const nameEl = document.createElement("div"); nameEl.className = "preset-item-name"; nameEl.textContent = p.name;
-    left.appendChild(nameEl);
-    if (isDefault) {
-      const defEl = document.createElement("div"); defEl.className = "preset-default-label"; defEl.textContent = "Default";
-      left.appendChild(defEl);
-    }
-    left.addEventListener("click", () => { settingsSelected = p.name; renderSettingsList(); });
-
-    const acts = document.createElement("div"); acts.className = "preset-item-actions";
-    const editBtn = document.createElement("button");
-    editBtn.className = "btn-preset-icon"; editBtn.title = "Edit preset";
-    editBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-    editBtn.addEventListener("click", e => { e.stopPropagation(); openEditForm(p.name); });
-
-    const delBtn = document.createElement("button");
-    delBtn.className = "btn-preset-icon delete";
-    delBtn.title = isDefault ? "Cannot delete the default preset" : "Delete preset";
-    if (isDefault) delBtn.disabled = true;
-    delBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
-    delBtn.addEventListener("click", e => { e.stopPropagation(); deletePreset(p.name); });
-
-    acts.append(editBtn, delBtn);
-    item.append(left, acts);
-    list.appendChild(item);
-  });
-  renderPresetValues();
-}
-
-function renderPresetValues() {
-  const p = getPreset(settingsSelected);
-  if (!p) return;
-  $("presetValuesTitle").textContent = p.name;
-  const grid = $("presetValuesGrid");
-  grid.innerHTML = "";
-  PRESET_FIELD_CONFIG.forEach(cfg => {
-    const box = document.createElement("div"); box.className = "pvb";
-    box.innerHTML = `<div class="pvb-label">${cfg.label}</div><div class="pvb-value">${fmtPresetVal(cfg.key, p[cfg.key])}</div>`;
-    grid.appendChild(box);
-  });
-}
-
-// ── Add / Edit form ──────────────────────────────────────────────────────────
-$("addPresetBtn").addEventListener("click", () => openEditForm(null));
-
-function openEditForm(presetName) {
-  editingPreset = presetName;
-  const isNew = presetName === null;
-  const p = isNew ? SEED_PRESETS[1] : getPreset(presetName);
-
-  $("presetEditTitle").textContent = isNew ? "New Preset" : `Edit: ${presetName}`;
-  $("presetNameInput").value = isNew ? "" : presetName;
-  $("presetNameInput").disabled = !isNew;
-  $("presetNameError").style.display = "none";
-  $("presetNameError").textContent = "";
-
-  const grid = $("presetFormFields");
-  grid.innerHTML = "";
-  PRESET_FIELD_CONFIG.forEach(cfg => {
-    const fieldDiv = document.createElement("div"); fieldDiv.className = "field";
-    const label = document.createElement("label");
-    label.className = "field-label"; label.htmlFor = `pef_${cfg.key}`; label.textContent = cfg.label;
-
-    const wrap = document.createElement("div");
-    wrap.className = "pef-wrap" + (cfg.prefix ? " has-prefix" : "");
-
-    const inp = document.createElement("input");
-    inp.type = "number"; inp.step = cfg.step; inp.min = cfg.min; inp.max = cfg.max;
-    inp.id = `pef_${cfg.key}`;
-    const rawVal = p[cfg.key];
-    if (cfg.pct) { inp.value = parseFloat((rawVal * 100).toFixed(4)); }
-    else { inp.value = rawVal; }
-
-    if (cfg.prefix) {
-      const pfx = document.createElement("span"); pfx.className = "pef-prefix"; pfx.textContent = cfg.prefix;
-      wrap.appendChild(pfx);
-    } else if (cfg.pct) {
-      const sfx = document.createElement("span"); sfx.className = "pef-suffix"; sfx.textContent = "%";
-      wrap.appendChild(sfx);
-    }
-    wrap.appendChild(inp);
-    fieldDiv.append(label, wrap);
-    grid.appendChild(fieldDiv);
-  });
-
-  $("presetMainSection").classList.add("off");
-  $("presetEditSection").classList.add("on");
-}
-
-$("savePresetBtn").addEventListener("click", () => {
-  const isNew = editingPreset === null;
-  const name = $("presetNameInput").value.trim();
-  if (!name) {
-    $("presetNameError").textContent = "Please enter a preset name.";
-    $("presetNameError").style.display = "block"; return;
-  }
-  if (isNew && assumptionPresets.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-    $("presetNameError").textContent = "A preset with this name already exists.";
-    $("presetNameError").style.display = "block"; return;
-  }
-  $("presetNameError").style.display = "none";
-
-  const newPreset = { name };
-  let valid = true;
-  PRESET_FIELD_CONFIG.forEach(cfg => {
-    const inp = $(`pef_${cfg.key}`);
-    const val = parseFloat(inp.value);
-    if (isNaN(val)) { inp.classList.add("err"); valid = false; return; }
-    inp.classList.remove("err");
-    newPreset[cfg.key] = cfg.pct ? val / 100 : val;
-  });
-  if (!valid) return;
-
-  if (isNew) { assumptionPresets.push(newPreset); }
-  else { const idx = assumptionPresets.findIndex(p => p.name === editingPreset); if (idx >= 0) assumptionPresets[idx] = newPreset; }
-
-  settingsSelected = name;
-  savePresetsStorage();
-  renderSettingsList();
-});
-
-$("cancelPresetBtn").addEventListener("click", () => {
-  $("presetMainSection").classList.remove("off");
-  $("presetEditSection").classList.remove("on");
-});
-
-function deletePreset(name) {
-  if (name === defaultPresetName) return;
-  if (!confirm(`Delete preset "${name}"?`)) return;
-  assumptionPresets = assumptionPresets.filter(p => p.name !== name);
-  if (settingsSelected === name) settingsSelected = defaultPresetName;
-  if (searchActivePreset === name) searchActivePreset = defaultPresetName;
-  savePresetsStorage();
-  renderSettingsList();
-}
-
-$("saveProfileBtn").addEventListener("click", () => {
-  defaultPresetName = settingsSelected;
-  searchActivePreset = settingsSelected;
-  savePresetsStorage();
-  renderSettingsList();
-  const btn = $("saveProfileBtn");
-  const orig = btn.textContent;
-  btn.textContent = "Saved ✓";
-  setTimeout(() => { btn.textContent = orig; }, 1500);
-});
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 buildMatrix();
