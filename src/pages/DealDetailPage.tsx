@@ -241,7 +241,7 @@ export default function DealDetailPage() {
                       } else if (deal.excel_path) {
                         setDownloadingExcel(true);
                         try {
-                          const signedUrl = await supabaseCreateSignedUrl("deal-files", deal.excel_path);
+                          const signedUrl = await supabaseCreateSignedUrl(`deal-files/${deal.excel_path}`);
                           window.open(signedUrl, "_blank");
                         } catch {
                           toast({ title: "Error", description: "Failed to download Excel file.", variant: "destructive" });
@@ -281,7 +281,7 @@ export default function DealDetailPage() {
                       } else if (deal.docx_path) {
                         setDownloadingDocx(true);
                         try {
-                          const signedUrl = await supabaseCreateSignedUrl("deal-files", deal.docx_path);
+                          const signedUrl = await supabaseCreateSignedUrl(`deal-files/${deal.docx_path}`);
                           window.open(signedUrl, "_blank");
                         } catch {
                           toast({ title: "Error", description: "Failed to download Word file.", variant: "destructive" });
