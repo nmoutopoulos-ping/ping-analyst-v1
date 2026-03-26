@@ -32,16 +32,16 @@ import { useToast } from "@/hooks/use-toast";
 
 const fields: { key: keyof Assumptions; label: string; hint: string }[] = [
   { key: "ltv", label: "Loan-to-Value (LTV)", hint: "e.g. 0.70 = 70%" },
-  { key: "closing_pct", label: "Closing Cost %", hint: "e.g. 0.02 = 2%" },
+  { key: "closingPct", label: "Closing Cost %", hint: "e.g. 0.02 = 2%" },
   { key: "vacancy", label: "Vacancy Rate", hint: "e.g. 0.07 = 7%" },
-  { key: "opex_ratio", label: "Operating Expense Ratio", hint: "e.g. 0.35 = 35%" },
-  { key: "int_rate", label: "Interest Rate", hint: "e.g. 0.065 = 6.5%" },
-  { key: "rent_growth_1", label: "Year 1 Rent Growth", hint: "e.g. 0.03 = 3%" },
-  { key: "other_inc_mo", label: "Other Monthly Income ($)", hint: "Per-unit monthly (laundry, parking, etc.)" },
+  { key: "opexRatio", label: "Operating Expense Ratio", hint: "e.g. 0.35 = 35%" },
+  { key: "intRate", label: "Interest Rate", hint: "e.g. 0.065 = 6.5%" },
+  { key: "rentGrowth1", label: "Year 1 Rent Growth", hint: "e.g. 0.03 = 3%" },
+  { key: "otherIncMo", label: "Other Monthly Income ($)", hint: "Per-unit monthly (laundry, parking, etc.)" },
 ];
 
 const emptyAssumptions: Assumptions = {
-  ltv: 0, closing_pct: 0, vacancy: 0, opex_ratio: 0, int_rate: 0, rent_growth_1: 0, other_inc_mo: 0,
+  ltv: 0, closingPct: 0, vacancy: 0, opexRatio: 0, intRate: 0, rentGrowth1: 0, otherIncMo: 0,
 };
 
 export default function SettingsPage() {
@@ -84,12 +84,12 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const created = await supabaseCreateAssumptionTemplate(apiKey, newTemplateName.trim(), newValues, false);
-      setTemplates((prev) => [created, ...prev]);
-      setSelectedTemplateId(created.id);
+      setTemplates((prev) => [...created, ...prev]);
+      setSelectedTemplateId(created[0].id);
       setNewTemplateName("");
       setNewValues({ ...emptyAssumptions });
       setShowNewDialog(false);
-      toast({ title: "Template saved", description: `"${created.name}" created.` });
+      toast({ title: "Template saved", description: `"${created[0].name}" created.` });
     } catch {
       toast({ title: "Error", description: "Failed to save template.", variant: "destructive" });
     } finally {
@@ -145,7 +145,7 @@ export default function SettingsPage() {
           Default financial assumptions used in every underwriting.
         </p>
 
-        {loading && <p className="mt-8 text-sm text-muted-foreground">Loading…</p>}
+        {loading && <p className="mt-8 text-sm text-muted-foreground">Loadingâ¦</p>}
         {error && <p className="mt-4 text-sm text-destructive">{error}</p>}
 
         {!loading && (
@@ -171,7 +171,7 @@ export default function SettingsPage() {
                       <label className="label-uppercase mb-1.5 block">Template Name</label>
                       <input
                         type="text"
-                        placeholder="e.g. Conservative, Aggressive…"
+                        placeholder="e.g. Conservative, Aggressiveâ¦"
                         value={newTemplateName}
                         onChange={(e) => setNewTemplateName(e.target.value)}
                         className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                       disabled={!newTemplateName.trim() || saving}
                     >
                       <Save className="h-4 w-4 mr-1" />
-                      {saving ? "Saving…" : "Save Template"}
+                      {saving ? "Savingâ¦" : "Save Template"}
                     </Button>
                   </div>
                 </DialogContent>
@@ -290,7 +290,7 @@ export default function SettingsPage() {
                             {fields.map(({ key, label }) => (
                               <div key={key} className="flex justify-between">
                                 <span className="text-muted-foreground">{label}</span>
-                                <span className="font-medium text-foreground">{(t.assumptions as Assumptions)[key] ?? "—"}</span>
+                                <span className="font-medium text-foreground">{(t.assumptions as Assumptions)[key] ?? "â"}</span>
                               </div>
                             ))}
                           </div>
