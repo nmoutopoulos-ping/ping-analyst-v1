@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Plus, MoreVertical, MapPin, Play, Loader2 } from "lucide-react";
-import { getApiKey } from "@/lib/api";
+import { getApiKey, getUserEmail } from "@/lib/api";
 import { supabaseGetTemplates, supabaseCreateTemplate, supabaseUpdateTemplate, supabaseDeleteTemplate } from "@/lib/supabase";
 import { Template } from "@/lib/types";
 
@@ -98,35 +98,45 @@ export default function AnalysisPage() {
   const handleSave = async (data: Partial<Template> & { assumption_template_id?: string }) => {
     const { assumption_template_id, ...templateData } = data as Record<string, unknown>;
     const body = { ...templateData, api_key: getApiKey() } as Record<string, unknown>;
-    if (editingTemplate) {
-      await supabaseUpdateTemplate(editingTemplate.id, body);
-    } else {
-      await supabaseCreateTemplate(getApiKey() || "", "", body);
+    try {
+      if (editingTemplate) {
+        await supabaseUpdateTemplate(editingTemplate.id, body);
+      } else {
+        await supabaseCreateTemplate(getApiKey() || "", getUserEmail() || "", body);
+      }
+      setModalOpen(false);
+      fetchTemplates();
+    } catch (err) {
+      console.error("[SaveTemplate]", err);
+      toast({ title: "Error", description: "Failed to save template.", variant: "destructive" });
     }
-    setModalOpen(false);
-    fetchTemplates();
   };
 
   const handleSaveAndRun = async (data: Partial<Template> & { assumption_template_id?: string }) => {
     const { assumption_template_id, ...templateData } = data as Record<string, unknown>;
     const body = { ...templateData, api_key: getApiKey() } as Record<string, unknown>;
-    let templateId: string | undefined;
-    if (editingTemplate) {
-      await supabaseUpdateTemplate(editingTemplate.id, body);
-      templateId = editingTemplate.id;
-    } else {
-      const res = await supabaseCreateTemplate(getApiKey() || "", "", body);
-      templateId = res?.id;
+    try {
+      let templateId: string | undefined;
+      if (editingTemplate) {
+        await supabaseUpdateTemplate(editingTemplate.id, body);
+        templateId = editingTemplate.id;
+      } else {
+        const res = await supabaseCreateTemplate(getApiKey() || "", getUserEmail() || "", body);
+        templateId = res?.[0]?.id;
+      }
+      if (templateId) {
+        const { apiPost } = await import("@/lib/api");
+        const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: templateId };
+        if (assumption_template_id) analyzeBody.assumption_template_id = assumption_template_id;
+        await apiPost("/crm/analyze", analyzeBody);
+      }
+      setModalOpen(false);
+      toast({ title: "Analysis running", description: "Results will appear in Deals." });
+      navigate("/deals");
+    } catch (err) {
+      console.error("[SaveAndRun]", err);
+      toast({ title: "Error", description: "Failed to save & run template.", variant: "destructive" });
     }
-    if (templateId) {
-      const { apiPost } = await import("@/lib/api");
-      const analyzeBody: Record<string, unknown> = { api_key: getApiKey(), template_id: templateId };
-      if (assumption_template_id) analyzeBody.assumption_template_id = assumption_template_id;
-      await apiPost("/crm/analyze", analyzeBody);
-    }
-    setModalOpen(false);
-    toast({ title: "Analysis running", description: "Results will appear in Deals." });
-    navigate("/deals");
   };
 
   const handleRunTemplate = async (t: Template) => {
