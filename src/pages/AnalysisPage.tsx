@@ -101,7 +101,7 @@ export default function AnalysisPage() {
     if (editingTemplate) {
       await supabaseUpdateTemplate(editingTemplate.id, body);
     } else {
-      await supabaseCreateTemplate(body);
+      await supabaseCreateTemplate(getApiKey() || "", "", body);
     }
     setModalOpen(false);
     fetchTemplates();
