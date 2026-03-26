@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
   const handleSetDefault = async (id: string) => {
     try {
-      await supabaseUpdateAssumptionTemplate(id, apiKey, { is_default: true });
+      await supabaseUpdateAssumptionTemplate(id, { is_default: true });
       setTemplates((prev) =>
         prev.map((t) => ({ ...t, is_default: t.id === id }))
       );
@@ -112,7 +112,7 @@ export default function SettingsPage() {
   const handleRename = async (id: string) => {
     if (!renameValue.trim()) return;
     try {
-      await supabaseUpdateAssumptionTemplate(id, apiKey, { name: renameValue.trim() });
+      await supabaseUpdateAssumptionTemplate(id, { name: renameValue.trim() });
       setTemplates((prev) =>
         prev.map((t) => (t.id === id ? { ...t, name: renameValue.trim() } : t))
       );

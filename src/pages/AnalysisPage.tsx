@@ -101,7 +101,7 @@ export default function AnalysisPage() {
     if (editingTemplate) {
       await supabaseUpdateTemplate(editingTemplate.id, body);
     } else {
-      await supabaseCreateTemplate(body);
+      await supabaseCreateTemplate(getApiKey() || "", "", body);
     }
     setModalOpen(false);
     fetchTemplates();
@@ -115,7 +115,7 @@ export default function AnalysisPage() {
       await supabaseUpdateTemplate(editingTemplate.id, body);
       templateId = editingTemplate.id;
     } else {
-      const res = await supabaseCreateTemplate(body);
+      const res = await supabaseCreateTemplate(getApiKey() || "", "", body);
       templateId = res?.id;
     }
     if (templateId) {
@@ -147,7 +147,7 @@ export default function AnalysisPage() {
 
   const handleDuplicate = async (t: Template) => {
     const { id, ...rest } = t;
-    await supabaseCreateTemplate({ ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
+    await supabaseCreateTemplate(getApiKey() || "", "", { ...rest, name: `${t.name} (Copy)`, api_key: getApiKey() } as Record<string, unknown>);
     fetchTemplates();
   };
 
