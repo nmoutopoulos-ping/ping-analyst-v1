@@ -1,3 +1,4 @@
+// v2 - auth key alignment
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || "https://analyst-ra00.onrender.com";
 
 export function getApiKey(): string | null {
