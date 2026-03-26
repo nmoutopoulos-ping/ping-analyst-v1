@@ -1,27 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || "https://analyst-ra00.onrender.com";
 
 export function getApiKey(): string | null {
-  return localStorage.getItem("ping_api_key");
+  return localStorage.getItem("apiKey");
 }
 
 export function getUserName(): string | null {
-  return localStorage.getItem("ping_user_name");
+  return localStorage.getItem("userName");
 }
 
 export function getUserEmail(): string | null {
-  return localStorage.getItem("ping_user_email");
+  return localStorage.getItem("userEmail");
 }
 
 export function setAuth(apiKey: string, name: string, email: string) {
-  localStorage.setItem("ping_api_key", apiKey);
-  localStorage.setItem("ping_user_name", name);
-  localStorage.setItem("ping_user_email", email);
+  localStorage.setItem("apiKey", apiKey);
+  localStorage.setItem("userName", name);
+  localStorage.setItem("userEmail", email);
 }
 
 export function clearAuth() {
-  localStorage.removeItem("ping_api_key");
-  localStorage.removeItem("ping_user_name");
-  localStorage.removeItem("ping_user_email");
+  localStorage.removeItem("apiKey");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userEmail");
 }
 
 export function isAuthenticated(): boolean {
