@@ -48,7 +48,8 @@ export interface Assumptions {
 }
 
 export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "Duplex", "Triplex", "Multi Family"] as const;
-export type UnitType = typeof UNIT_TYPES[number];
+
+export type UnitType = "Studio" | "1BA" | "2BA" | "3BA" | "4BA" | "5BA";
 
 export interface UnitCombo {
   bed: number;
@@ -57,11 +58,32 @@ export interface UnitCombo {
   type?: UnitType;
 }
 
+// ── Commercial Spaces ────────────────────────────────────────────────────────
+// Field names match the Chrome extension + backend (main.py, excel_writer.py).
+// `type`      = space category (Retail, Office, etc.)
+// `sqft`      = total square footage of the space
+// `rentPerSF` = annual rent per square foot ($/SF/Yr)
+//
+// Backend calculates annual commercial revenue as: sqft × rentPerSF
+// This is added to residential GPR for underwriting.
+//
+// Legacy CRM data may use `space_type` / `price_per_sqft` / `annual_revenue`.
+// Both the extension and CRM handle these via fallback mapping on load.
+
+export const COMMERCIAL_TYPES = [
+  "Retail",
+  "Office",
+  "Restaurant",
+  "Medical / Dental",
+  "Flex Space",
+] as const;
+
+export type CommercialSpaceType = (typeof COMMERCIAL_TYPES)[number];
+
 export interface CommercialSpace {
-  space_type: string;
-  sqft: number;
-  price_per_sqft: number;
-  annual_revenue: number;
+  type: string;       // one of COMMERCIAL_TYPES
+  sqft: number;       // square footage
+  rentPerSF: number;  // annual rent per SF ($/SF/Yr)
 }
 
 export interface Template {
