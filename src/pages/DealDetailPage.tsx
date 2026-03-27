@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Archive, Loader2 } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -125,20 +125,51 @@ export default function DealDetailPage() {
 
             {/* Comp Summary */}
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <h3 className="mb-4 text-sm font-semibold text-foreground">Comp Summary</h3>
-                <div className="grid grid-cols-2 gap-y-3 text-sm">
-                  {[
-                    ["Avg Rent/Unit", fmt(c?.avg_rent, "usd")],
-                    ["Avg SQFT", fmt(c?.avg_sqft, "num")],
-                    ["Total Comps", c?.count ?? 0],
-                    ["Radius", m?.radius ? `${m.radius} mi` : "—"],
-                  ].map(([label, val]) => (
-                    <div key={String(label)}>
-                      <span className="label-uppercase">{label}</span>
-                      <p className="mt-0.5 text-foreground">{String(val)}</p>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-foreground">Comp Summary</h3>
+                  <Link
+                    to="/comps"
+                    className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <MapPin className="h-3 w-3" /> View Comp Map
+                  </Link>
                 </div>
+                <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
+                  <div>
+                    <span className="label-uppercase">Total Comps</span>
+                    <p className="mt-0.5 text-foreground">{c?.reduce((s, e) => s + e.count, 0) ?? 0}</p>
+                  </div>
+                  <div>
+                    <span className="label-uppercase">Radius</span>
+                    <p className="mt-0.5 text-foreground">{m?.radius ? `${m.radius} mi` : "—"}</p>
+                  </div>
+                </div>
+                {c && c.length > 0 && (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-muted/50 text-muted-foreground">
+                          <th className="text-left px-3 py-2 font-medium">Unit Type</th>
+                          <th className="text-right px-3 py-2 font-medium">Units</th>
+                          <th className="text-right px-3 py-2 font-medium">Comps</th>
+                          <th className="text-right px-3 py-2 font-medium">Avg Rent</th>
+                          <th className="text-right px-3 py-2 font-medium">Avg Sqft</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {c.map((entry, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="px-3 py-2 font-medium text-foreground">{entry.beds}bd / {entry.baths}ba</td>
+                            <td className="px-3 py-2 text-right text-foreground">{entry.units}</td>
+                            <td className="px-3 py-2 text-right text-foreground">{entry.count}</td>
+                            <td className="px-3 py-2 text-right text-foreground">${entry.avg_rent?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                            <td className="px-3 py-2 text-right text-foreground">{entry.avg_sqft?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </section>
 
             {/* Financial Results */}
