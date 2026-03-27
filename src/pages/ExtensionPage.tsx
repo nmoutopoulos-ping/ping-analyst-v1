@@ -3,6 +3,7 @@ import { Download, Chrome, Key, Eye, EyeOff, Check, AlertCircle } from "lucide-r
 import { getApiKey } from "@/lib/api";
 
 const API_BASE = "https://analyst-ra00.onrender.com";
+const SUPABASE_FN = "https://knimxvcbrtkuhsuovasu.supabase.co/functions/v1";
 
 export default function ExtensionPage() {
   const [extPassword, setExtPassword] = useState("");
@@ -23,8 +24,8 @@ export default function ExtensionPage() {
     setExtStatus("saving");
     setExtError("");
     try {
-      const res = await fetch(API_BASE + "/extension/password", {
-        method: "PATCH",
+      const res = await fetch(SUPABASE_FN + "/update-extension-password", {
+        method: "POST",
         headers: { "Content-Type": "application/json", "X-Api-Key": getApiKey() || "" },
         body: JSON.stringify({ password: extPassword }),
       });
