@@ -31,6 +31,17 @@ function _headers(): Record<string, string> {
   return h;
 }
 
+function _getUserId(): string | null {
+  if (!_accessToken) _loadSession();
+  if (!_accessToken) return null;
+  try {
+    const payload = JSON.parse(atob(_accessToken.split(".")[1]));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
 function _saveSession(access: string, refresh: string, expiresIn: number) {
   _accessToken = access;
   _refreshToken = refresh;
