@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Save, Check, Plus, Trash2, Star, StarOff, Pencil, X, Eye } from "lucide-react";
+import { Save, Check, Plus, Trash2, Star, StarOff, Pencil, X, Eye, Copy } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import {
   supabaseGetAssumptionTemplates,
@@ -121,6 +121,24 @@ export default function SettingsPage() {
       toast({ title: "Template renamed" });
     } catch {
       toast({ title: "Error", description: "Failed to rename.", variant: "destructive" });
+    }
+  };
+
+  const handleDuplicate = async (t: AssumptionTemplate) => {
+    setSaving(true);
+    try {
+      const created = await supabaseCreateAssumptionTemplate(
+        apiKey,
+        `${t.name} (Copy)`,
+        { ...(t.assumptions as Assumptions) },
+        false
+      );
+      setTemplates((prev) => [...created, ...prev]);
+      toast({ title: "Template duplicated", description: `"${t.name} (Copy)" created.` });
+    } catch {
+      toast({ title: "Error", description: "Failed to duplicate template.", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -261,6 +279,13 @@ export default function SettingsPage() {
                             className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Eye className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDuplicate(t)}
+                            title="Duplicate template"
+                            className="rounded p-1 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
                           </button>
                           <button
                             onClick={() => { setRenamingId(t.id); setRenameValue(t.name); }}
