@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Template, UnitCombo, CommercialSpace, AssumptionTemplate, UnitType } from "@/lib/types";
-import { UNIT_TYPES } from "@/lib/types";
+import { UNIT_TYPES, COMMERCIAL_TYPES } from "@/lib/types";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetAssumptionTemplates } from "@/lib/supabase";
 
@@ -154,7 +154,11 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       setUnitCounts(counts);
       setUnitTypes(types);
       setCommercialEnabled((template.commercial_spaces || []).length > 0);
-      setCommercialSpaces(template.commercial_spaces || []);
+      setCommercialSpaces((template.commercial_spaces || []).map((s: any) => ({
+        type: s.type || s.space_type || "Retail",
+        sqft: Number(s.sqft) || 0,
+        rentPerSF: Number(s.rentPerSF || s.rent_per_sf || s.price_per_sqft) || 0,
+      })));
     } else {
       setName("");
       setAddress("");
@@ -270,7 +274,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
   const addCommercialRow = () => {
     setCommercialSpaces((prev) => [
       ...prev,
-      { space_type: "Retail", sqft: 0, price_per_sqft: 0, annual_revenue: 0 },
+      { type: "Retail", sqft: 0, rentPerSF: 0 },
     ]);
   };
 
@@ -279,8 +283,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       prev.map((row, i) => {
         if (i !== idx) return row;
         const updated = { ...row, [field]: value };
-        if (field === "sqft" || field === "price_per_sqft") {
-          updated.annual_revenue = (Number(updated.sqft) || 0) * (Number(updated.price_per_sqft) || 0);
+        if (field === "sqft" || field === "rentPerSF") {
+          // annual_revenue computed on display: sqft * rentPerSF (annual)
         }
         return updated;
       })
@@ -510,8 +514,8 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                         <tr className="border-b border-border bg-muted/30">
                           <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Space Type</th>
                           <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">SQ FT</th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">$/SF/MO</th>
-                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">MO. REV</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">$/SF/Yr</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Ann. Rev</th>
                           <th className="w-10"></th>
                         </tr>
                       </thead>
@@ -519,10 +523,10 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                         {commercialSpaces.map((row, idx) => (
                           <tr key={idx} className="border-b border-border last:border-0">
                             <td className="px-3 py-2">
-                              <Select value={row.space_type} onValueChange={(v) => updateCommercialRow(idx, "space_type", v)}>
+                              <Select value={row.type} onValueChange={(v) => updateCommercialRow(idx, "type", v)}>
                                 <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  {["Retail", "Office", "Industrial", "Mixed"].map((t) => (
+                                  {COMMERCIAL_TYPES.map((t) => (
                                     <SelectItem key={t} value={t}>{t}</SelectItem>
                                   ))}
                                 </SelectContent>
@@ -532,10 +536,10 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
                               <Input type="number" className="h-8 text-xs" value={row.sqft || ""} onChange={(e) => updateCommercialRow(idx, "sqft", Number(e.target.value))} />
                             </td>
                             <td className="px-3 py-2">
-                              <Input type="number" className="h-8 text-xs" value={row.price_per_sqft || ""} onChange={(e) => updateCommercialRow(idx, "price_per_sqft", Number(e.target.value))} />
+                              <Input type="number" className="h-8 text-xs" value={row.rentPerSF || ""} onChange={(e) => updateCommercialRow(idx, "rentPerSF", Number(e.target.value))} />
                             </td>
                             <td className="px-3 py-2 text-xs font-mono text-muted-foreground">
-                              ${row.annual_revenue.toLocaleString()}
+                              ${((row.sqft || 0) * (row.rentPerSF || 0)).toLocaleString()}
                             </td>
                             <td className="px-2 py-2">
                               <button onClick={() => removeCommercialRow(idx)} className="text-muted-foreground hover:text-destructive">
