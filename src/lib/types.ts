@@ -1,3 +1,12 @@
+export interface CompSummaryEntry {
+  beds: string;
+  baths: string;
+  count: number;
+  units: number;
+  avg_rent: number;
+  avg_sqft: number;
+}
+
 export interface Deal {
   search_id: string;
   address: string;
