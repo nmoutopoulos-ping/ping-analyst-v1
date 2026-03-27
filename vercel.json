@@ -1,14 +1,5 @@
 {
-  "functions": {
-    "api/extension-zip.js": {
-      "includeFiles": "Extension/ping-analyst_v1/**"
-    }
-  },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
