@@ -1,17 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Ping Analyst",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Multifamily underwriting analysis powered by Ping.",
-  "permissions": ["storage", "sidePanel"],
-  "host_permissions": [
-    "https://*.up.railway.app/*",
-    "https://*.railway.app/*",
-    "https://nominatim.openstreetmap.org/*",
-    "http://localhost:5001/"
+  "permissions": [
+    "storage",
+    "sidePanel"
   ],
-  "background": { "service_worker": "background.js" },
-  "side_panel": { "default_path": "sidepanel.html" },
+  "host_permissions": [
+    "https://*.onrender.com/*",
+    "https://*.supabase.co/*",
+    "https://nominatim.openstreetmap.org/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "action": {
     "default_title": "Ping Analyst",
     "default_icon": {
