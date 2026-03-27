@@ -218,9 +218,7 @@ export async function supabaseCreateTemplate(
 ) {
   const valid = await _ensureValidToken();
   if (!valid) console.warn("[supabaseCreateTemplate] No valid auth session — request may fail");
-  const userId = _getUserId();
   const body: Record<string, unknown> = { ...template, api_key: apiKey, email };
-  if (userId) body.user_id = userId;
   console.log("[supabaseCreateTemplate] Sending body keys:", Object.keys(body));
   const res = await fetch(`${SB_URL}/rest/v1/templates`, {
     method: "POST",
