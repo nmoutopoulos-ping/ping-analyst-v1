@@ -1,12 +1,12 @@
-// sidepanel.js — Ping Analyst v3.0 (Supabase-direct)
+// sidepanel.js â Ping Analyst v3.0 (Supabase-direct)
 const $ = id => document.getElementById(id);
 
-// ── Supabase config ──────────────────────────────────────────────────────────
+// ââ Supabase config ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const SUPABASE_URL = "https://knimxvcbrtkuhsuovasu.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuaW14dmNicnRrdWhzdW92YXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MDEyNjAsImV4cCI6MjA4OTE3NzI2MH0.g3Gcz-c41C9jnxy5Gba_jzrV1ATjy5_Wr5yaIXOHY8M";
 const RENDER_URL = "https://analyst-ra00.onrender.com";
 
-// ── USD Formatting ─────────────────────────────────────────────────────────────
+// ââ USD Formatting âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function parseUSD(val) { return String(val).replace(/[^0-9.]/g, ""); }
 function formatUSD(val) {
   const num = parseFloat(parseUSD(val));
@@ -21,14 +21,14 @@ function wireUSDInputs() {
   });
 }
 
-// ── Unit Mix Matrix ──────────────────────────────────────────────────────────
+// ââ Unit Mix Matrix ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const TYPES = { 0:"Studio", 1:"Single", 2:"Duplex", 3:"Triplex", 4:"Fourplex", 5:"Fiveplex" };
 const MAX_COMBOS = 5;
 let selectedCombos = [];
 let resolvedCoords = null;
 let resolvedAddress = null;
 
-// ── Commercial Spaces ────────────────────────────────────────────────────────
+// ââ Commercial Spaces ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const COMMERCIAL_TYPES = ["Retail", "Office", "Restaurant", "Medical / Dental", "Flex Space"];
 const MAX_COMMERCIAL = 5;
 let selectedCommercial = [];
@@ -90,14 +90,14 @@ function renderCommercialPanel() {
       const _upd = () => {
         const sf = parseFloat(sfEl.value)||0, r = parseFloat(rentEl.value)||0;
         if (sf>0&&r>0) { revEl.textContent=`$${Math.round(sf*r).toLocaleString()}`; revEl.classList.remove("empty"); }
-        else { revEl.textContent="—"; revEl.classList.add("empty"); }
+        else { revEl.textContent="â"; revEl.classList.add("empty"); }
       };
       _upd();
       sfEl.addEventListener("input", () => { selectedCommercial[i].sqft = sfEl.value; _upd(); updateCommTotal(); if (sfEl.value && parseInt(sfEl.value)>=1) hideErr("commercialError"); });
       rentEl.addEventListener("input", () => { selectedCommercial[i].rentPerSF = rentEl.value; _upd(); updateCommTotal(); if (rentEl.value && parseFloat(rentEl.value)>0) hideErr("commercialError"); });
 
       const rmBtn = document.createElement("button");
-      rmBtn.className = "btn-rm-comm"; rmBtn.type = "button"; rmBtn.textContent = "×";
+      rmBtn.className = "btn-rm-comm"; rmBtn.type = "button"; rmBtn.textContent = "Ã";
       rmBtn.addEventListener("click", () => removeCommercialRow(i));
 
       row.append(typeEl, sfEl, rentEl, revEl, rmBtn);
@@ -111,7 +111,7 @@ function renderCommercialPanel() {
 function updateCommTotal() {
   const totalSF = selectedCommercial.reduce((s,c) => s+(parseFloat(c.sqft)||0), 0);
   const totalRev = selectedCommercial.reduce((s,c) => s+(parseFloat(c.sqft)||0)*(parseFloat(c.rentPerSF)||0), 0);
-  if (totalSF > 0 && totalRev > 0) $("commTotalDisplay").textContent = `${Math.round(totalSF).toLocaleString()} SF · $${Math.round(totalRev).toLocaleString()}/yr`;
+  if (totalSF > 0 && totalRev > 0) $("commTotalDisplay").textContent = `${Math.round(totalSF).toLocaleString()} SF Â· $${Math.round(totalRev).toLocaleString()}/yr`;
   else if (totalSF > 0) $("commTotalDisplay").textContent = `${Math.round(totalSF).toLocaleString()} SF total`;
   else $("commTotalDisplay").textContent = "";
 }
@@ -195,7 +195,7 @@ function updateMatrixBadge() {
   badge.className = "matrix-badge" + (selectedCombos.length > 0 ? " active" : "");
 }
 
-// ── Geocoding ────────────────────────────────────────────────────────────────
+// ââ Geocoding ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let geoTimer = null;
 $("address").addEventListener("input", () => {
   resolvedCoords = null; resolvedAddress = null;
@@ -222,9 +222,9 @@ async function geocodeAddress(address) {
   } catch (_) {} finally { $("addrSpinner").className = "addr-spinner"; }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// AUTH — Supabase Auth (email/password)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// AUTH â Supabase Auth (email/password)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 let currentApiKey = null;
 let currentUserName = null;
@@ -234,7 +234,7 @@ let tokenExpiresAt = 0;
 
 function isSignedIn() { return !!accessToken && !!currentApiKey; }
 
-// ── Supabase REST helpers ────────────────────────────────────────────────────
+// ââ Supabase REST helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function sbHeaders(auth = true) {
   const h = {
@@ -257,7 +257,7 @@ async function sbGet(table, query = "") {
   return res.json();
 }
 
-// ── Token management ─────────────────────────────────────────────────────────
+// ââ Token management âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function getSavedAuth() {
   return new Promise(resolve => {
@@ -326,7 +326,7 @@ async function ensureValidToken() {
   return refreshSession();
 }
 
-// ── Sign-in / sign-out ───────────────────────────────────────────────────────
+// ââ Sign-in / sign-out âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function switchView(viewId) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
@@ -362,7 +362,7 @@ async function handleSignIn() {
   }
 
   $("signInBtn").disabled = true;
-  $("signInBtn").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Signing in…`;
+  $("signInBtn").innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Signing inâ¦`;
   $("signInError").style.display = "none";
 
   try {
@@ -409,9 +409,9 @@ function handleSignOut() {
   showSignedOut();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ASSUMPTION PRESETS — Read from Supabase (managed in CRM)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ASSUMPTION PRESETS â Read from Supabase (managed in CRM)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const PRESET_FIELD_CONFIG = [
   { key:"ltv",        label:"Loan-to-Value (LTV)",      step:"1",   min:"1",   max:"100", pct:true },
@@ -453,7 +453,7 @@ async function loadPresets() {
       const def = rows.find(r => r.is_default);
       defaultPresetName = def ? def.name : rows[0].name;
     } else {
-      // No presets in DB yet — fall back to seed defaults
+      // No presets in DB yet â fall back to seed defaults
       assumptionPresets = SEED_PRESETS.map(p => ({ ...p }));
       defaultPresetName = assumptionPresets[0].name;
     }
@@ -481,7 +481,7 @@ function fmtPresetVal(key, val) {
   return "$" + val;
 }
 
-// ── Search preset selector ───────────────────────────────────────────────────
+// ââ Search preset selector âââââââââââââââââââââââââââââââââââââââââââââââââââ
 function renderSearchPresetSelect() {
   const sel = $("searchPresetSelect");
   if (!sel) return;
@@ -507,9 +507,9 @@ $("openSettingsBtn").addEventListener("click", () => {
   renderSettingsList();
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SETTINGS VIEW — Read-only (presets managed in CRM)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// SETTINGS VIEW â Read-only (presets managed in CRM)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 $("settingsBackBtn").addEventListener("click", () => {
   switchView("viewSearch");
@@ -563,9 +563,9 @@ function renderPresetValues() {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TEMPLATES — Read from Supabase (with full combo/commercial restoration)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// TEMPLATES â Read from Supabase (with full combo/commercial restoration)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 async function loadTemplates() {
   const list = $("templatesList");
@@ -596,7 +596,7 @@ async function loadTemplates() {
 }
 
 function applyTemplate(t) {
-  // ── Basic fields ──
+  // ââ Basic fields ââ
   if (t.address) $("address").value = t.address;
   if (t.price)   $("price").value = formatUSD(String(t.price));
   if (t.improvements) $("cost").value = formatUSD(String(t.improvements));
@@ -606,7 +606,7 @@ function applyTemplate(t) {
   if (t.max_comps) $("maxComps").value = t.max_comps;
   if (t.status)  $("status").value = t.status;
 
-  // ── Geocode the address ──
+  // ââ Geocode the address ââ
   if (t.lat && t.lng) {
     resolvedCoords = { lat: t.lat, lng: t.lng };
     resolvedAddress = t.address;
@@ -616,7 +616,7 @@ function applyTemplate(t) {
     geocodeAddress(t.address);
   }
 
-  // ── Restore unit mix combos ──
+  // ââ Restore unit mix combos ââ
   // Clear existing selections
   selectedCombos = [];
   document.querySelectorAll(".combo-cb").forEach(cb => {
@@ -650,13 +650,13 @@ function applyTemplate(t) {
     if (!c.checked) c.disabled = selectedCombos.length >= MAX_COMBOS;
   });
 
-  // ── Restore commercial spaces ──
+  // ââ Restore commercial spaces ââ
   selectedCommercial = [];
   if (t.commercial_spaces && Array.isArray(t.commercial_spaces) && t.commercial_spaces.length > 0) {
     selectedCommercial = t.commercial_spaces.map(s => ({
-      type: s.type || COMMERCIAL_TYPES[0],
+      type: s.type || s.space_type || COMMERCIAL_TYPES[0],
       sqft: String(s.sqft || ""),
-      rentPerSF: String(s.rentPerSF || s.rent_per_sf || ""),
+      rentPerSF: String(s.rentPerSF || s.rent_per_sf || s.price_per_sqft || ""),
     }));
     $("commercialToggle").checked = true;
     $("commercialPanel").classList.add("on");
@@ -671,9 +671,9 @@ function applyTemplate(t) {
   $("address").scrollIntoView({ behavior: "smooth" });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // INIT
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 async function loadSettings() {
   // Wire sign-in
@@ -685,7 +685,7 @@ async function loadSettings() {
   $("signInPassword").addEventListener("keydown", e => { if (e.key === "Enter") handleSignIn(); });
   $("signInEmail").addEventListener("keydown", e => { if (e.key === "Enter") handleSignIn(); });
 
-  // Check saved auth — try to restore session
+  // Check saved auth â try to restore session
   const saved = await getSavedAuth();
   if (saved.sb_access_token && saved.sb_refresh_token) {
     accessToken = saved.sb_access_token;
@@ -725,12 +725,12 @@ function getFormVals() {
 $("saveBtn").addEventListener("click", () => {
   const vals = getFormVals();
   chrome.storage.sync.set({ ...vals, combos: selectedCombos, commercial: selectedCommercial, commercialToggle: $("commercialToggle").checked }, () => {
-    $("saveBtn").textContent = "Saved ✓";
+    $("saveBtn").textContent = "Saved â";
     setTimeout(() => $("saveBtn").textContent = "Save", 1500);
   });
 });
 
-// ── Validation ───────────────────────────────────────────────────────────────
+// ââ Validation âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function showErr(id) { $(id).classList.add("on"); }
 function hideErr(id) { $(id).classList.remove("on"); }
 
@@ -774,9 +774,9 @@ function validate(vals) {
   return ok;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// RUN ANALYSIS — Still hits the Render backend (the only backend call)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// RUN ANALYSIS â Still hits the Render backend (the only backend call)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 $("runBtn").addEventListener("click", async () => {
   const vals = getFormVals();
@@ -784,7 +784,7 @@ $("runBtn").addEventListener("click", async () => {
   if (!validate(vals)) return;
 
   $("runBtn").disabled = true;
-  $("runBtn").innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Running…`;
+  $("runBtn").innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Runningâ¦`;
 
   const activeCommercial = $("commercialToggle").checked ? selectedCommercial : [];
 
@@ -832,7 +832,7 @@ $("runBtn").addEventListener("click", async () => {
     const totalUnits = selectedCombos.reduce((s, c) => s + (parseInt(c.units) || 0), 0);
 
     const entry = {
-      searchId: data.searchId || "—",
+      searchId: data.searchId || "â",
       address: vals.address,
       totalUnits,
       combos: selectedCombos,
@@ -840,7 +840,7 @@ $("runBtn").addEventListener("click", async () => {
       presetName: chosenPresetName,
       timestamp: new Date().toISOString(),
       success: !!data.ok,
-      message: data.error || (data.ok ? "Analysis started — results will be emailed to you shortly." : "Unknown error"),
+      message: data.error || (data.ok ? "Analysis started â results will be emailed to you shortly." : "Unknown error"),
     };
     addToHistory(entry);
     showResults(entry, vals);
@@ -854,11 +854,11 @@ $("runBtn").addEventListener("click", async () => {
   }
 });
 
-// ── Results ──────────────────────────────────────────────────────────────────
+// ââ Results ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function showResults(entry, vals) {
   const hero = $("resultHero");
   hero.className = `result-hero ${entry.success ? "ok" : "err"}`;
-  $("resultStatus").textContent = entry.success ? "✓ Analysis Started" : "✕ Failed";
+  $("resultStatus").textContent = entry.success ? "â Analysis Started" : "â Failed";
   $("resultId").textContent = entry.searchId;
   $("resultMeta").textContent = entry.message;
   $("resultsBadge").className = "results-badge" + (entry.success ? "" : " error");
@@ -868,14 +868,14 @@ function showResults(entry, vals) {
   details.innerHTML = "";
   [
     ["Address", entry.address],
-    ["Total Units", entry.totalUnits || "—"],
-    ["Price", vals?.price ? formatUSD(vals.price) : "—"],
-    ["Cost", vals?.cost ? formatUSD(vals.cost) : "—"],
-    ["Building SqFt", vals?.sqft ? Number(vals.sqft).toLocaleString() + " sqft" : "—"],
-    ["Radius", `${vals?.radius || "—"} mi`],
-    ["Comps", `${vals?.minComps || "—"} – ${vals?.maxComps || "—"}`],
-    ["Status", vals?.status || "—"],
-    ["Assumptions", entry.presetName || "—"],
+    ["Total Units", entry.totalUnits || "â"],
+    ["Price", vals?.price ? formatUSD(vals.price) : "â"],
+    ["Cost", vals?.cost ? formatUSD(vals.cost) : "â"],
+    ["Building SqFt", vals?.sqft ? Number(vals.sqft).toLocaleString() + " sqft" : "â"],
+    ["Radius", `${vals?.radius || "â"} mi`],
+    ["Comps", `${vals?.minComps || "â"} â ${vals?.maxComps || "â"}`],
+    ["Status", vals?.status || "â"],
+    ["Assumptions", entry.presetName || "â"],
   ].forEach(([label, value]) => {
     const row = document.createElement("div"); row.className = "detail-row";
     row.innerHTML = `<span class="dl">${label}</span><span class="dv">${value}</span>`;
@@ -892,7 +892,7 @@ function showResults(entry, vals) {
     entry.combos.forEach(c => {
       const tag = document.createElement("span");
       tag.className = "combo-tag";
-      tag.textContent = `${c.type} ${c.beds}bd/${c.baths}ba${c.units ? ` · ${c.units}u` : ""}`;
+      tag.textContent = `${c.type} ${c.beds}bd/${c.baths}ba${c.units ? ` Â· ${c.units}u` : ""}`;
       tags.appendChild(tag);
     });
     row.appendChild(tags);
@@ -923,7 +923,7 @@ function handleNewSearch() {
 
 $("newSearchBtn2").addEventListener("click", handleNewSearch);
 
-// ── History ──────────────────────────────────────────────────────────────────
+// ââ History ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function addToHistory(entry) {
   chrome.storage.local.get(["searchHistory"], ({ searchHistory }) => {
     const h = searchHistory || [];
@@ -940,14 +940,14 @@ function renderHistory() {
     h.slice(0, 8).forEach(entry => {
       const item = document.createElement("div"); item.className = "h-item";
       const d = new Date(entry.timestamp);
-      const t = d.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + " · " + d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
-      item.innerHTML = `<div><div class="h-id">${entry.searchId}</div><div class="h-meta">${entry.address} · ${t}</div></div><span class="h-badge ${entry.success?"ok":"err"}">${entry.success?"OK":"ERR"}</span>`;
+      const t = d.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + " Â· " + d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+      item.innerHTML = `<div><div class="h-id">${entry.searchId}</div><div class="h-meta">${entry.address} Â· ${t}</div></div><span class="h-badge ${entry.success?"ok":"err"}">${entry.success?"OK":"ERR"}</span>`;
       list.appendChild(item);
     });
   });
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ââ Init âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 buildMatrix();
 loadSettings();
 wireUSDInputs();
