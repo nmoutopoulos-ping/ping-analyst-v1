@@ -147,12 +147,28 @@ export async function supabaseRestoreSession(): Promise<boolean> {
 export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   await _ensureValidToken();
   const res = await fetch(
-    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&select=*`,
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=not.is.true&order=created_at.desc&select=*`,
     { headers: _headers() }
   );
   if (!res.ok) return [];
   const rows = await res.json();
-  return rows.map((r: any) => ({ ...r, stage: r.deal_stage }));
+  return rows.map(_mapDealRow);
+}
+
+function _mapDealRow(r: any): Deal {
+  return {
+    ...r,
+    stage: r.deal_stage || r.stage || "New",
+    search_meta: r.search_meta || {
+      address: r.address,
+      price: r.price ? Number(r.price) : undefined,
+      listing_price: r.listing_price ? Number(r.listing_price) : undefined,
+      cost: r.cost ? Number(r.cost) : undefined,
+      sqft: r.sqft ? Number(r.sqft) : undefined,
+      total_units: r.total_units ? Number(r.total_units) : undefined,
+      radius: r.radius ? Number(r.radius) : undefined,
+    },
+  };
 }
 
 export async function supabaseGetDeal(
@@ -166,8 +182,8 @@ export async function supabaseGetDeal(
   );
   if (!res.ok) return null;
   const rows = await res.json();
-  const deal = rows[0] || null;
-  return deal ? { ...deal, stage: deal.deal_stage } : null;
+  const row = rows[0] || null;
+  return row ? _mapDealRow(row) : null;
 }
 
 // Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
