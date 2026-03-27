@@ -1,7 +1,7 @@
-import { Plus, FileText, Settings, MapPin, Puzzle, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, FileText, Settings, MapPin, Puzzle, Shield, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-
 import {
   Sidebar,
   SidebarContent,
@@ -22,11 +22,32 @@ const navItems = [
   { title: "Extension", url: "/extension", icon: Puzzle },
 ];
 
+function isAdmin(): boolean {
+  try {
+    const token = localStorage.getItem("sb_access_token");
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.user_metadata?.role === "admin";
+  } catch {
+    return false;
+  }
+}
+
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  useEffect(() => {
+    setShowAdmin(isAdmin());
+  }, []);
+
   const isActive = (path: string) => location.pathname.startsWith(path);
+
+  const allItems = showAdmin
+    ? [...navItems, { title: "Admin", url: "/admin", icon: Shield }]
+    : navItems;
 
   return (
     <Sidebar collapsible="icon" className="flex flex-col">
@@ -34,7 +55,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {allItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
