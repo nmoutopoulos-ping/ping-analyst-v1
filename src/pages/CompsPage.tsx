@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { MapPin, Expand, X, ZoomIn, ZoomOut, Locate } from "lucide-react";
-import { supabaseGetComps, type RentcastComp } from "@/lib/supabase";
+import { supabaseGetComps, supabaseGetDealsForComps, type RentcastComp } from "@/lib/supabase";
 
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
