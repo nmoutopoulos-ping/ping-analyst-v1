@@ -51,6 +51,8 @@ function _loadSession() {
 }
 
 async function _ensureValidToken(): Promise<boolean> {
+  // Always hydrate from localStorage if we don't have tokens in memory
+  if (!_accessToken) _loadSession();
   if (_accessToken && Date.now() < _tokenExpiresAt - 60_000) return true;
   if (!_refreshToken) return false;
   try {
