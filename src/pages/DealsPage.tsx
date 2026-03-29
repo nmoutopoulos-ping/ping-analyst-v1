@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Settings, MapPin, GripVertical } from "lucide-react";
 import { getApiKey } from "@/lib/api";
-import { supabaseGetDeals, supabaseUpdateDealStage } from "@/lib/supabase";
+import { supabaseGetDeals, getDealImageUrl, supabaseUpdateDealStage } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import { KanbanColumn, getColumns, saveColumns } from "@/lib/kanbanColumns";
 import KanbanSettingsPanel from "@/components/KanbanSettingsPanel";
@@ -35,16 +35,21 @@ function formatDate(iso: string) {
 }
 
 function formatPrice(n?: number) {
-  if (!n) return "—";
+  if (!n) return "â";
   return "$" + n.toLocaleString();
 }
 
-/* ── Draggable Deal Card ── */
+/* ââ Draggable Deal Card ââ */
 function DealCard({ deal, navigate, isDragging }: { deal: Deal; navigate: (path: string) => void; isDragging?: boolean }) {
   return (
     <div
       className={`w-full rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-shadow duration-150 ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-md"}`}
     >
+        {getDealImageUrl(deal) && (
+          <div className="w-full h-32 overflow-hidden rounded-t-lg -mt-3 -mx-3 mb-2" style={{width: "calc(100% + 1.5rem)"}}>
+            <img src={getDealImageUrl(deal)} alt={deal.address} className="w-full h-full object-cover" />
+          </div>
+        )}
       <div className="label-uppercase text-accent">SEARCH ID</div>
       <p className="font-mono text-sm font-semibold text-foreground">{deal.search_id}</p>
       <p className="text-xs text-muted-foreground">{formatDate(deal.created_at)}</p>
@@ -60,7 +65,7 @@ function DealCard({ deal, navigate, isDragging }: { deal: Deal; navigate: (path:
       <div className="mt-3 flex gap-6">
         <div>
           <div className="label-uppercase">Units</div>
-          <p className="text-sm font-medium text-foreground">{deal.search_meta?.total_units ?? "—"}</p>
+          <p className="text-sm font-medium text-foreground">{deal.search_meta?.total_units ?? "â"}</p>
         </div>
         <div>
           <div className="label-uppercase">$ Price</div>
@@ -94,7 +99,7 @@ function SortableDealCard({ deal, navigate }: { deal: Deal; navigate: (path: str
   );
 }
 
-/* ── Droppable Column ── */
+/* ââ Droppable Column ââ */
 function DroppableColumn({
   col,
   deals,
@@ -123,7 +128,7 @@ function DroppableColumn({
   );
 }
 
-/* ── Sortable Column Header ── */
+/* ââ Sortable Column Header ââ */
 function SortableColumnHeader({ col, count }: { col: KanbanColumn; count: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `colheader-${col.id}`,
@@ -150,7 +155,7 @@ function SortableColumnHeader({ col, count }: { col: KanbanColumn; count: number
   );
 }
 
-/* ── Main Page ── */
+/* ââ Main Page ââ */
 export default function DealsPage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -283,7 +288,7 @@ export default function DealsPage() {
         </div>
       )}
 
-      {loading && <p className="mt-8 text-sm text-muted-foreground">Loading…</p>}
+      {loading && <p className="mt-8 text-sm text-muted-foreground">Loadingâ¦</p>}
       {error && <p className="mt-8 text-sm text-destructive">{error}</p>}
 
       {!loading && !error && (
