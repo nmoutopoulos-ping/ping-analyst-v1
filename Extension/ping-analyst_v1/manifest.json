@@ -5,7 +5,9 @@
   "description": "Multifamily underwriting analysis powered by Ping.",
   "permissions": [
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "activeTab",
+    "scripting"
   ],
   "host_permissions": [
     "https://*.onrender.com/*",
