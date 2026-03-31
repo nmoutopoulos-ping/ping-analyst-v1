@@ -12,6 +12,8 @@ import ProfilePage from "@/pages/ProfilePage";
 import CompsPage from "@/pages/CompsPage";
 import AdminPage from "@/pages/AdminPage";
 import NotFound from "@/pages/NotFound";
+import { useEffect } from "react";
+import { supabaseRestoreSession } from "@/lib/supabase";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
