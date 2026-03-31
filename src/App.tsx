@@ -16,6 +16,8 @@ import { useEffect } from "react";
 import { supabaseRestoreSession } from "@/lib/supabase";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  useEffect(() => { supabaseRestoreSession(); }, []);
+
   return (
     <AuthGuard>
       <AppLayout>{children}</AppLayout>
