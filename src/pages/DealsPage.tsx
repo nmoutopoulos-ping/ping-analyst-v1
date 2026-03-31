@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Settings, MapPin, GripVertical } from "lucide-react";
+import { Search, Settings, MapPin, GripVertical, Archive, X } from "lucide-react";
 import { getApiKey } from "@/lib/api";
-import { supabaseGetDeals, getDealImageUrl, supabaseUpdateDealStage } from "@/lib/supabase";
+import { supabaseGetDeals, supabaseGetArchivedDeals, getDealImageUrl, supabaseUpdateDealStage } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import { KanbanColumn, getColumns, saveColumns } from "@/lib/kanbanColumns";
 import KanbanSettingsPanel from "@/components/KanbanSettingsPanel";
