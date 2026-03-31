@@ -19,7 +19,7 @@ import { Deal } from "@/lib/types";
 
 
 function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num") {
-  if (val == null) return "—";
+  if (val == null) return "â";
   if (type === "pct") return (val * 100).toFixed(1) + "%";
   if (type === "mult") return val.toFixed(1) + "x";
   if (type === "usd") return "$" + val.toLocaleString();
@@ -64,7 +64,7 @@ export default function DealDetailPage() {
     }
   };
 
-  if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading…</p>;
+  if (loading) return <p className="p-8 text-sm text-muted-foreground">Loadingâ¦</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
 
   const r = deal.results;
@@ -109,7 +109,7 @@ export default function DealDetailPage() {
               <div className="grid grid-cols-2 gap-y-3 text-sm">
                 {[
                   ["Date", new Date(deal.created_at).toLocaleDateString()],
-                  ["Total Units", m?.total_units ?? "—"],
+                  ["Total Units", m?.total_units ?? "â"],
                   ["Price", fmt(m?.price || m?.listing_price, "usd")],
                   ["Improvements", fmt(m?.cost, "usd")],
                   ["Building SQFT", fmt(m?.sqft, "num")],
@@ -141,7 +141,7 @@ export default function DealDetailPage() {
                   </div>
                   <div>
                     <span className="label-uppercase">Radius</span>
-                    <p className="mt-0.5 text-foreground">{m?.radius ? `${m.radius} mi` : "—"}</p>
+                    <p className="mt-0.5 text-foreground">{m?.radius ? `${m.radius} mi` : "â"}</p>
                   </div>
                 </div>
                 {c && c.length > 0 && (
@@ -172,6 +172,31 @@ export default function DealDetailPage() {
                 )}
               </section>
 
+            {/* Assumptions */}
+            {deal.assumptions_snapshot && (
+              <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                <h3 className="mb-4 text-sm font-semibold text-foreground">
+                  Assumptions{deal.preset_name ? ` — ${deal.preset_name}` : ""}
+                </h3>
+                <div className="grid grid-cols-2 gap-y-3 text-sm">
+                  {[
+                    ["LTV", fmt(deal.assumptions_snapshot.ltv, "pct")],
+                    ["Vacancy Rate", fmt(deal.assumptions_snapshot.vacancy, "pct")],
+                    ["Interest Rate", fmt(deal.assumptions_snapshot.intRate, "pct")],
+                    ["Closing Cost %", fmt(deal.assumptions_snapshot.closingPct, "pct")],
+                    ["Operating Expense %", fmt(deal.assumptions_snapshot.opexRatio, "pct")],
+                    ["Year 1 Rent Growth", fmt(deal.assumptions_snapshot.rentGrowth1, "pct")],
+                    ["Other Monthly Income", fmt(deal.assumptions_snapshot.otherIncMo, "usd")],
+                  ].map(([label, val]) => (
+                    <div key={String(label)}>
+                      <span className="label-uppercase">{label}</span>
+                      <p className="mt-0.5 text-foreground">{String(val)}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Financial Results */}
             {r && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -183,7 +208,7 @@ export default function DealDetailPage() {
                     ["Monthly Cash Flow", fmt(r.monthly_cash_flow, "usd")],
                     ["Loan Amount", fmt(r.loan_amount, "usd")],
                     ["Down Payment", fmt(r.down_payment, "usd")],
-                    ["DSCR", r.dscr?.toFixed(2) ?? "—"],
+                    ["DSCR", r.dscr?.toFixed(2) ?? "â"],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
                       <span className="label-uppercase">{label}</span>
@@ -209,7 +234,7 @@ export default function DealDetailPage() {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
-              {saving && <p className="mt-2 text-xs text-muted-foreground">Saving…</p>}
+              {saving && <p className="mt-2 text-xs text-muted-foreground">Savingâ¦</p>}
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -217,7 +242,7 @@ export default function DealDetailPage() {
                     disabled={archiving}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Archive className="h-4 w-4" /> {archiving ? "Archiving…" : "Archive Deal"}
+                    <Archive className="h-4 w-4" /> {archiving ? "Archivingâ¦" : "Archive Deal"}
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -284,11 +309,11 @@ export default function DealDetailPage() {
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
                   >
                     {downloadingExcel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {downloadingExcel ? "Downloading…" : "📊 Download Excel Report"}
+                    {downloadingExcel ? "Downloadingâ¦" : "ð Download Excel Report"}
                   </button>
                 ) : (
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
-                    <Download className="h-4 w-4" /> Excel — Not available
+                    <Download className="h-4 w-4" /> Excel â Not available
                   </div>
                 )}
                 {(deal.docx_data || deal.docx_path) ? (
@@ -324,11 +349,11 @@ export default function DealDetailPage() {
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
                   >
                     {downloadingDocx ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {downloadingDocx ? "Downloading…" : "📄 Download Word Report"}
+                    {downloadingDocx ? "Downloadingâ¦" : "ð Download Word Report"}
                   </button>
                 ) : (
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
-                    <Download className="h-4 w-4" /> Word — Not available
+                    <Download className="h-4 w-4" /> Word â Not available
                   </div>
                 )}
               </div>
