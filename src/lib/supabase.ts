@@ -145,8 +145,9 @@ export async function supabaseRestoreSession(): Promise<boolean> {
 
 export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   await _ensureValidToken();
+  console.log("[supabaseGetDeals] apiKey:", apiKey ? `${apiKey.slice(0, 4)}...` : "NULL/EMPTY", "hasToken:", !!_accessToken);
   const res = await fetch(
-    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&select=*`,
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=neq.true&order=created_at.desc&select=*`,
     { headers: _headers() }
   );
   if (!res.ok) {
