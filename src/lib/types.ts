@@ -8,10 +8,15 @@ export interface Deal {
   stage: string;
   created_at: string;
   comp_summary?: {
+    beds?: number;
+    baths?: number;
+    units?: number;
     avg_rent: number;
     avg_sqft: number;
     count: number;
-  };
+  }[];
+  assumptions_snapshot?: Assumptions;
+  preset_name?: string;
   search_meta: {
     address: string;
     listing_price?: number;
