@@ -391,7 +391,7 @@ export function getDealImageUrl(deal: Deal): string | null {
   return null;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
 // COMPS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -408,78 +408,51 @@ export async function supabaseGetComps(dealIds: string[]): Promise<RentcastComp[
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DEAL PHOTOS — CRUD + Storage upload/delete
+// DEAL PHOTOS — URL-based CRUD (paste workflow)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Upload a photo file to Supabase Storage and create the deal_photos row.
- * Storage path: {apiKey}/{dealId}/{timestamp}_{filename}
+ * Add a photo to a deal by pasting an external image URL.
  */
-export async function supabaseUploadDealPhoto(
+export async function supabaseAddDealPhotoUrl(
   apiKey: string,
   dealId: string,
-  file: File,
+  imageUrl: string,
   opts?: { caption?: string; label?: string; sortOrder?: number }
 ): Promise<DealPhoto | null> {
   await _ensureValidToken();
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `${apiKey}/${dealId}/${Date.now()}_${safeName}`;
+  // Derive a display name from the URL
+  const urlObj = new URL(imageUrl);
+  const fileName = urlObj.pathname.split("/").pop() || "photo";
 
-  // 1. Upload binary to storage bucket
-  const uploadRes = await fetch(
-    `${SB_URL}/storage/v1/object/deal-photos/${storagePath}`,
-    {
-      method: "POST",
-      headers: {
-        "apikey": SB_KEY,
-        "Authorization": `Bearer ${_accessToken}`,
-        "Content-Type": file.type,
-        "x-upsert": "false",
-      },
-      body: file,
-    }
-  );
-  if (!uploadRes.ok) {
-    console.error("Photo upload failed:", await uploadRes.text());
-    return null;
-  }
-
-  // 2. Insert metadata row
   const row = {
     deal_id: dealId,
     api_key: apiKey,
-    storage_path: storagePath,
-    file_name: file.name,
+    image_url: imageUrl,
+    file_name: fileName,
     caption: opts?.caption || null,
     label: opts?.label || null,
     sort_order: opts?.sortOrder ?? 0,
-    file_size: file.size,
-    mime_type: file.type,
   };
 
-  const insertRes = await fetch(`${SB_URL}/rest/v1/deal_photos`, {
+  const res = await fetch(`${SB_URL}/rest/v1/deal_photos`, {
     method: "POST",
     headers: { ..._headers(), "Prefer": "return=representation" },
     body: JSON.stringify(row),
   });
 
-  if (!insertRes.ok) {
-    console.error("Photo row insert failed:", await insertRes.text());
-    // Clean up orphaned storage object
-    await fetch(`${SB_URL}/storage/v1/object/deal-photos/${storagePath}`, {
-      method: "DELETE",
-      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${_accessToken}` },
-    });
+  if (!res.ok) {
+    console.error("Photo row insert failed:", await res.text());
     return null;
   }
-
-  const [photo] = await insertRes.json();
+  const [photo] = await res.json();
   return photo;
 }
 
 /**
- * Fetch all photos for a deal, ordered by sort_order, with signed URLs.
+ * Fetch all photos for a deal, ordered by sort_order.
+ * URL-based photos use image_url directly; storage photos get signed URLs.
  */
 export async function supabaseGetDealPhotos(dealId: string): Promise<DealPhoto[]> {
   await _ensureValidToken();
@@ -490,22 +463,26 @@ export async function supabaseGetDealPhotos(dealId: string): Promise<DealPhoto[]
   if (!res.ok) return [];
   const photos: DealPhoto[] = await res.json();
 
-  // Batch-generate signed URLs
+  // Resolve display URLs: prefer image_url, fall back to signed storage URL
   const withUrls = await Promise.all(
     photos.map(async (p) => {
-      const url = await supabaseCreateSignedUrl(`deal-photos/${p.storage_path}`, 3600);
-      return { ...p, signed_url: url ?? undefined };
+      if (p.image_url) return { ...p, signed_url: p.image_url };
+      if (p.storage_path) {
+        const url = await supabaseCreateSignedUrl(`deal-photos/${p.storage_path}`, 3600);
+        return { ...p, signed_url: url ?? undefined };
+      }
+      return p;
     })
   );
   return withUrls;
 }
 
 /**
- * Update photo metadata (caption, label, sort_order).
+ * Update photo metadata (caption, label, image_url, sort_order).
  */
 export async function supabaseUpdateDealPhoto(
   photoId: string,
-  updates: { caption?: string; label?: string; sort_order?: number }
+  updates: { caption?: string; label?: string; image_url?: string; sort_order?: number }
 ): Promise<DealPhoto | null> {
   await _ensureValidToken();
   const res = await fetch(
@@ -540,24 +517,26 @@ export async function supabaseReorderDealPhotos(
 }
 
 /**
- * Delete a photo — removes both the storage object and the metadata row.
+ * Delete a photo — removes storage object (if any) and the metadata row.
  */
 export async function supabaseDeleteDealPhoto(photo: DealPhoto): Promise<boolean> {
   await _ensureValidToken();
 
-  // 1. Delete from storage
-  const storageRes = await fetch(
-    `${SB_URL}/storage/v1/object/deal-photos/${photo.storage_path}`,
-    {
-      method: "DELETE",
-      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${_accessToken}` },
+  // Only delete from storage if it's a storage-based photo
+  if (photo.storage_path) {
+    const storageRes = await fetch(
+      `${SB_URL}/storage/v1/object/deal-photos/${photo.storage_path}`,
+      {
+        method: "DELETE",
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${_accessToken}` },
+      }
+    );
+    if (!storageRes.ok) {
+      console.error("Storage delete failed:", await storageRes.text());
     }
-  );
-  if (!storageRes.ok) {
-    console.error("Storage delete failed:", await storageRes.text());
   }
 
-  // 2. Delete metadata row
+  // Delete metadata row
   const rowRes = await fetch(
     `${SB_URL}/rest/v1/deal_photos?id=eq.${encodeURIComponent(photo.id)}`,
     { method: "DELETE", headers: _headers() }
