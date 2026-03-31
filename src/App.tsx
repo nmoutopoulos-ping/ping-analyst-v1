@@ -11,12 +11,15 @@ import ExtensionPage from "@/pages/ExtensionPage";
 import ProfilePage from "@/pages/ProfilePage";
 import CompsPage from "@/pages/CompsPage";
 import AdminPage from "@/pages/AdminPage";
+import MarketSearchPage from "@/pages/MarketSearchPage";
 import NotFound from "@/pages/NotFound";
 import { useEffect } from "react";
 import { supabaseRestoreSession } from "@/lib/supabase";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  useEffect(() => { supabaseRestoreSession(); }, []);
+  useEffect(() => {
+    supabaseRestoreSession();
+  }, []);
 
   return (
     <AuthGuard>
@@ -39,6 +42,7 @@ const App = () => (
         <Route path="/extension" element={<ProtectedRoute><ExtensionPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/comps" element={<ProtectedRoute><CompsPage /></ProtectedRoute>} />
+        <Route path="/market" element={<ProtectedRoute><MarketSearchPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
