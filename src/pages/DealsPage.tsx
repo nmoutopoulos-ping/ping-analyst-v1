@@ -171,7 +171,14 @@ export default function DealsPage() {
   );
 
   useEffect(() => {
-    supabaseGetDeals(getApiKey()!)
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      console.warn("[DealsPage] No apiKey found in localStorage");
+      setError("No API key found. Please log out and log back in.");
+      setLoading(false);
+      return;
+    }
+    supabaseGetDeals(apiKey)
       .then((deals) => setDeals(deals))
       .catch(() => setError("Failed to load deals."))
       .finally(() => setLoading(false));
