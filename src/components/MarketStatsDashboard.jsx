@@ -1,11 +1,11 @@
 /**
  * MarketStatsDashboard.jsx
  *
- * RentCast Market Intelligence Panel — CRM Integration Prototype
+ * RentCast Market Intelligence Panel â CRM Integration Prototype
  *
  * HANDOFF NOTES FOR CLAUDE CODE:
- * ─────────────────────────────────────────────────────────────────
- * 1. CORS — WHY MOCK DATA IS ON:
+ * âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+ * 1. CORS â WHY MOCK DATA IS ON:
  *    RentCast does not allow direct browser-to-API calls (no CORS headers).
  *    USE_MOCK_DATA is set to TRUE for the Lovable prototype so you can
  *    build and validate the UI without a backend.
@@ -26,21 +26,21 @@
  *
  * 4. DEPENDENCIES: Tailwind CSS (already in Lovable), lucide-react.
  *    Run: npm install lucide-react (likely already installed in Lovable)
- * ─────────────────────────────────────────────────────────────────
+ * âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search, RefreshCw, TrendingUp, Home, Clock,
   BarChart2, AlertCircle, Building2, ChevronDown
 } from "lucide-react";
 
-// ─── CONFIG ──────────────────────────────────────────────────────
+// âââ CONFIG ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // API key lives server-side on Render (RENTCAST_API_KEY env var).
 // All requests go through the backend proxy to avoid CORS.
 const BACKEND_URL = "https://analyst-ra00.onrender.com";
 const USE_MOCK_DATA = false;
-// ─────────────────────────────────────────────────────────────────
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const PROPERTY_TYPES = [
   { value: "Single Family", label: "Single family" },
@@ -80,12 +80,12 @@ const MOCK_LISTINGS = [
   { formattedAddress: "300 Bowie St #510, Austin, TX 78703", bedrooms: 3, bathrooms: 2, squareFootage: 1380, price: 3400 },
 ];
 
-// ─── HELPERS ─────────────────────────────────────────────────────
+// âââ HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const fmt = (n) =>
-  n == null || isNaN(n) ? "—" : "$" + Math.round(n).toLocaleString();
+  n == null || isNaN(n) ? "â" : "$" + Math.round(n).toLocaleString();
 
 const fmtPct = (n) =>
-  n == null || isNaN(n) ? "—" : (n * 100).toFixed(1) + "%";
+  n == null || isNaN(n) ? "â" : (n * 100).toFixed(1) + "%";
 
 const BED_TYPES = [
   { key: "bedrooms_0", label: "Studio", color: "bg-violet-100 text-violet-800" },
@@ -95,7 +95,7 @@ const BED_TYPES = [
   { key: "bedrooms_4", label: "4+ bed", color: "bg-rose-100 text-rose-800" },
 ];
 
-// ─── SUB-COMPONENTS ───────────────────────────────────────────────
+// âââ SUB-COMPONENTS âââââââââââââââââââââââââââââââââââââââââââââââ
 
 function MetricCard({ label, value, sub, icon: Icon, accent = "gray" }) {
   const accents = {
@@ -146,13 +146,13 @@ function UnitRow({ bedType, data, maxRent }) {
       </td>
       <td className="py-3 pr-4 text-sm font-semibold text-gray-900">{fmt(data.averageRent)}</td>
       <td className="py-3 pr-4 text-xs text-gray-400">
-        {fmt(data.minRent)} – {fmt(data.maxRent)}
+        {fmt(data.minRent)} â {fmt(data.maxRent)}
       </td>
       <td className="py-3 pr-6 w-32 hidden sm:table-cell">
         <RentBar value={data.averageRent} max={maxRent} />
       </td>
       <td className="py-3 text-xs text-gray-400 text-right whitespace-nowrap">
-        {data.averageDaysOnMarket ? `${Math.round(data.averageDaysOnMarket)}d` : "—"}
+        {data.averageDaysOnMarket ? `${Math.round(data.averageDaysOnMarket)}d` : "â"}
       </td>
     </tr>
   );
@@ -163,7 +163,7 @@ function ListingRow({ listing }) {
     <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
       <div className="min-w-0 flex-1 pr-4">
         <div className="text-sm font-medium text-gray-800 truncate">
-          {listing.formattedAddress || listing.addressLine1 || "—"}
+          {listing.formattedAddress || listing.addressLine1 || "â"}
         </div>
         <div className="text-xs text-gray-400 mt-0.5">
           {[
@@ -172,7 +172,7 @@ function ListingRow({ listing }) {
             listing.squareFootage && `${Math.round(listing.squareFootage).toLocaleString()} sqft`,
           ]
             .filter(Boolean)
-            .join(" · ")}
+            .join(" Â· ")}
         </div>
       </div>
       <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">
@@ -183,7 +183,7 @@ function ListingRow({ listing }) {
   );
 }
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────
+// âââ MAIN COMPONENT âââââââââââââââââââââââââââââââââââââââââââââââ
 
 export default function MarketStatsDashboard({ defaultZip = "" }) {
   const [zip, setZip] = useState(defaultZip);
@@ -235,7 +235,16 @@ export default function MarketStatsDashboard({ defaultZip = "" }) {
     }
   };
 
-  const r = data?.rentalData || {};
+  // Auto-fetch when defaultZip is provided (e.g. from deal detail page)
+  const didAutoFetch = useRef(false);
+  useEffect(() => {
+    if (defaultZip && !didAutoFetch.current) {
+      didAutoFetch.current = true;
+      fetchData();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const r = data?.rentalData || {};
   const s = data?.saleData || {};
 
   const unitRows = BED_TYPES.map((b) => ({ bedType: b, data: r[b.key] })).filter(
@@ -300,7 +309,7 @@ export default function MarketStatsDashboard({ defaultZip = "" }) {
             ) : (
               <Search size={14} />
             )}
-            {loading ? "Loading…" : "Fetch"}
+            {loading ? "Loadingâ¦" : "Fetch"}
           </button>
         </div>
 
@@ -334,10 +343,10 @@ export default function MarketStatsDashboard({ defaultZip = "" }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <MetricCard label="Avg rent" value={fmt(r.averageRent)} sub="per month" icon={TrendingUp} accent="blue" />
               <MetricCard label="Vacancy rate" value={fmtPct(r.averageVacancy)} sub="avg vacancy" icon={Home} accent="green" />
-              <MetricCard label="Days on market" value={r.averageDaysOnMarket ? `${Math.round(r.averageDaysOnMarket)}d` : "—"} sub="avg rental DOM" icon={Clock} accent="amber" />
-              <MetricCard label="Rent range" value={`${fmt(r.minRent)} – ${fmt(r.maxRent)}`} sub="min / max" accent="gray" />
+              <MetricCard label="Days on market" value={r.averageDaysOnMarket ? `${Math.round(r.averageDaysOnMarket)}d` : "â"} sub="avg rental DOM" icon={Clock} accent="amber" />
+              <MetricCard label="Rent range" value={`${fmt(r.minRent)} â ${fmt(r.maxRent)}`} sub="min / max" accent="gray" />
               <MetricCard label="Avg sale price" value={fmt(s.averagePrice)} sub="sale comps" icon={Building2} accent="violet" />
-              <MetricCard label="Sale DOM" value={s.averageDaysOnMarket ? `${Math.round(s.averageDaysOnMarket)}d` : "—"} sub="avg days on market" icon={Clock} accent="gray" />
+              <MetricCard label="Sale DOM" value={s.averageDaysOnMarket ? `${Math.round(s.averageDaysOnMarket)}d` : "â"} sub="avg days on market" icon={Clock} accent="gray" />
             </div>
 
             {/* Unit type breakdown */}
