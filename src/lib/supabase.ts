@@ -1,11 +1,11 @@
 /**
- * supabase.ts — Supabase client for Ping Analyst CRM
+ * supabase.ts â Supabase client for Ping Analyst CRM
  * ---------------------------------------------------
  * Uses Supabase Auth for authentication and the REST API for data access.
  * All queries are scoped to the authenticated user via RLS policies.
  *
- * v2.0 — Migrated from anon-key-only to Supabase Auth (JWT-based).
- * v2.1 — Added deal photo CRUD + storage upload/delete.
+ * v2.0 â Migrated from anon-key-only to Supabase Auth (JWT-based).
+ * v2.1 â Added deal photo CRUD + storage upload/delete.
  */
 
 import type { Deal, AssumptionTemplate, Assumptions, DealPhoto } from "./types";
@@ -13,7 +13,7 @@ import type { Deal, AssumptionTemplate, Assumptions, DealPhoto } from "./types";
 const SB_URL = import.meta.env.VITE_SUPABASE_URL;
 const SB_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// ── Auth session state ──────────────────────────────────────────────────────
+// ââ Auth session state ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 let _accessToken: string | null = null;
 let _refreshToken: string | null = null;
@@ -69,7 +69,7 @@ async function _ensureValidToken(): Promise<boolean> {
   }
 }
 
-// ── RentcastComp type ────────────────────────────────────────────────────────
+// ââ RentcastComp type ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export type RentcastComp = {
   id: string;
@@ -97,9 +97,9 @@ export type RentcastComp = {
   created_at: string;
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// AUTH — Supabase Auth (email/password)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// AUTH â Supabase Auth (email/password)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseLogin(
   email: string,
@@ -139,9 +139,9 @@ export async function supabaseRestoreSession(): Promise<boolean> {
   return _ensureValidToken();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // DEALS
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   await _ensureValidToken();
@@ -167,9 +167,9 @@ export async function supabaseGetDeal(
   return rows[0] || null;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // SEARCH TEMPLATES
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseGetTemplates(apiKey: string) {
   await _ensureValidToken();
@@ -222,9 +222,9 @@ export async function supabaseDeleteTemplate(id: string) {
   if (!res.ok) throw new Error("Failed to delete template");
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // DEAL MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseArchiveDeal(searchId: string) {
   await _ensureValidToken();
@@ -254,9 +254,9 @@ export async function supabaseUpdateDealStage(searchId: string, stage: string) {
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // ASSUMPTION TEMPLATES
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseGetAssumptionTemplates(apiKey: string): Promise<AssumptionTemplate[]> {
   await _ensureValidToken();
@@ -315,9 +315,9 @@ export async function supabaseDeleteAssumptionTemplate(id: string) {
   if (!res.ok) throw new Error("Failed to delete assumption template");
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // USER SETTINGS (on users table)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseGetSettings(apiKey: string) {
   await _ensureValidToken();
@@ -344,9 +344,9 @@ export async function supabaseUpdateSettings(apiKey: string, assumptions: Record
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STORAGE — Signed URLs for deal files
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// STORAGE â Signed URLs for deal files
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseCreateSignedUrl(
   bucketPath: string,
@@ -371,9 +371,9 @@ export async function supabaseCreateSignedUrl(
   return data.signedURL ? `${SB_URL}/storage/v1${data.signedURL}` : null;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DEAL IMAGES — helper to resolve image URL with Street View fallback
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// DEAL IMAGES â helper to resolve image URL with Street View fallback
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 const STREET_VIEW_KEY = import.meta.env.VITE_GOOGLE_STREET_VIEW_KEY || "";
 
@@ -391,9 +391,9 @@ export function getDealImageUrl(deal: Deal): string | null {
   return null;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // COMPS
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 export async function supabaseGetComps(dealIds: string[]): Promise<RentcastComp[]> {
   if (!dealIds.length) return [];
@@ -407,9 +407,9 @@ export async function supabaseGetComps(dealIds: string[]): Promise<RentcastComp[
   return res.json();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DEAL PHOTOS — URL-based CRUD (paste workflow)
-// ═══════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// DEAL PHOTOS â URL-based CRUD (paste workflow)
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 /**
  * Add a photo to a deal by pasting an external image URL.
@@ -517,7 +517,7 @@ export async function supabaseReorderDealPhotos(
 }
 
 /**
- * Delete a photo — removes storage object (if any) and the metadata row.
+ * Delete a photo â removes storage object (if any) and the metadata row.
  */
 export async function supabaseDeleteDealPhoto(photo: DealPhoto): Promise<boolean> {
   await _ensureValidToken();
@@ -542,4 +542,45 @@ export async function supabaseDeleteDealPhoto(photo: DealPhoto): Promise<boolean
     { method: "DELETE", headers: _headers() }
   );
   return rowRes.ok;
+}
+
+
+// ── Notification helpers ──────────────────────────────────
+
+export async function supabaseGetNotifications(apiKey: string) {
+  await _ensureValidToken();
+  const res = await fetch(
+    `${SB_URL}/rest/v1/notifications?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&limit=20&select=*`,
+    { headers: _headers() }
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function supabaseMarkNotificationRead(id: string) {
+  await _ensureValidToken();
+  const res = await fetch(
+    `${SB_URL}/rest/v1/notifications?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { ..._headers(), "Prefer": "return=representation" },
+      body: JSON.stringify({ read: true }),
+    }
+  );
+  if (!res.ok) throw new Error("Failed to mark notification read");
+  return res.json();
+}
+
+export async function supabaseMarkAllNotificationsRead(apiKey: string) {
+  await _ensureValidToken();
+  const res = await fetch(
+    `${SB_URL}/rest/v1/notifications?api_key=eq.${encodeURIComponent(apiKey)}&read=eq.false`,
+    {
+      method: "PATCH",
+      headers: { ..._headers(), "Prefer": "return=representation" },
+      body: JSON.stringify({ read: true }),
+    }
+  );
+  if (!res.ok) throw new Error("Failed to mark all notifications read");
+  return res.json();
 }
