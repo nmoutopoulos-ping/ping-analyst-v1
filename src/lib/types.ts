@@ -92,7 +92,7 @@ export interface Assumptions {
 
 export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "Duplex", "Triplex", "Multi Family"] as const;
 
-export type UnitType = "Studio" | "1BA" | "2BA" | "3BA" | "4BA" | "5BA";
+export type UnitType = (typeof UNIT_TYPES)[number];
 
 export interface UnitCombo {
   bed: number;

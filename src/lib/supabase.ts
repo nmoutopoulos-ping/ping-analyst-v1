@@ -149,8 +149,13 @@ export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
     `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&select=*`,
     { headers: _headers() }
   );
-  if (!res.ok) return [];
-  return res.json();
+  if (!res.ok) {
+    console.error("[supabaseGetDeals] HTTP", res.status, await res.text().catch(() => ""));
+    return [];
+  }
+  const rows = await res.json();
+  console.log("[supabaseGetDeals] fetched", rows.length, "deals");
+  return rows;
 }
 
 export async function supabaseGetDeal(
