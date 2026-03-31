@@ -164,6 +164,9 @@ export default function DealsPage() {
   const [columns, setColumns] = useState<KanbanColumn[]>(getColumns);
   const [showSettings, setShowSettings] = useState(false);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [showArchives, setShowArchives] = useState(false);
+  const [archivedDeals, setArchivedDeals] = useState<Deal[]>([]);
+  const [archivesLoading, setArchivesLoading] = useState(false);
   const navigate = useNavigate();
 
   const sensors = useSensors(
