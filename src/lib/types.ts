@@ -36,6 +36,8 @@ export interface Deal {
   excel_data?: unknown;
   docx_data?: unknown;
   image_url?: string;
+  assumptions_snapshot?: Assumptions;
+  preset_name?: string;
 }
 
 export interface Assumptions {
