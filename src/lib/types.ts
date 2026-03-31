@@ -44,7 +44,7 @@ export interface DealPhoto {
   id: string;
   deal_id: string;
   api_key: string;
-  storage_path: string;
+  storage_path?: string;
   file_name: string;
   caption?: string;
   label?: string;
@@ -52,6 +52,8 @@ export interface DealPhoto {
   file_size?: number;
   mime_type?: string;
   created_at: string;
+  /** External image URL (paste-based workflow) */
+  image_url?: string;
   /** Populated client-side after fetching a signed URL */
   signed_url?: string;
 }
