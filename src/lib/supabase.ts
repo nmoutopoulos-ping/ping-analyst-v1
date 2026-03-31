@@ -159,6 +159,16 @@ export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   return rows;
 }
 
+export async function supabaseGetArchivedDeals(apiKey: string): Promise<Deal[]> {
+  await _ensureValidToken();
+  const res = await fetch(
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.true&order=created_at.desc&select=*`,
+    { headers: _headers() }
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function supabaseGetDeal(
   searchId: string,
   apiKey: string
