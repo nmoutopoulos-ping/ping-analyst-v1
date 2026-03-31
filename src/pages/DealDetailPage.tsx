@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Deal } from "@/lib/types";
+import MarketStatsDashboard from "@/components/MarketStatsDashboard";
 
 
 function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num") {
@@ -218,6 +219,11 @@ export default function DealDetailPage() {
                 </div>
               </section>
             )}
+
+            {/* Market Intelligence */}
+            <section className="rounded-xl border border-border bg-card p-6">
+              <MarketStatsDashboard defaultZip={(deal.address?.match(/(\d{5})(?:\s|$|-)/) || [])[1] || ""} />
+            </section>
           </div>
 
           {/* Right sidebar */}
