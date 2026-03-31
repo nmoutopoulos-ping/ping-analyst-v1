@@ -1,8 +1,10 @@
 export interface Deal {
+  id?: string;
   search_id: string;
   address: string;
   short_address: string;
   email: string;
+  api_key?: string;
   stage: string;
   created_at: string;
   comp_summary?: {
@@ -36,9 +38,40 @@ export interface Deal {
   excel_data?: unknown;
   docx_data?: unknown;
   image_url?: string;
-  assumptions_snapshot?: Assumptions;
-  preset_name?: string;
 }
+
+export interface DealPhoto {
+  id: string;
+  deal_id: string;
+  api_key: string;
+  storage_path: string;
+  file_name: string;
+  caption?: string;
+  label?: string;
+  sort_order: number;
+  file_size?: number;
+  mime_type?: string;
+  created_at: string;
+  /** Populated client-side after fetching a signed URL */
+  signed_url?: string;
+}
+
+export const PHOTO_LABELS = [
+  "Exterior",
+  "Interior",
+  "Kitchen",
+  "Bathroom",
+  "Bedroom",
+  "Living Room",
+  "Lobby",
+  "Roof",
+  "Mechanical",
+  "Parking",
+  "Neighborhood",
+  "Other",
+] as const;
+
+export type PhotoLabel = (typeof PHOTO_LABELS)[number];
 
 export interface Assumptions {
   ltv: number;
