@@ -8,10 +8,15 @@ export interface Deal {
   stage: string;
   created_at: string;
   comp_summary?: {
+    beds?: number;
+    baths?: number;
+    units?: number;
     avg_rent: number;
     avg_sqft: number;
     count: number;
-  };
+  }[];
+  assumptions_snapshot?: Assumptions;
+  preset_name?: string;
   search_meta: {
     address: string;
     listing_price?: number;
@@ -87,7 +92,7 @@ export interface Assumptions {
 
 export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "Duplex", "Triplex", "Multi Family"] as const;
 
-export type UnitType = "Studio" | "1BA" | "2BA" | "3BA" | "4BA" | "5BA";
+export type UnitType = (typeof UNIT_TYPES)[number];
 
 export interface UnitCombo {
   bed: number;
