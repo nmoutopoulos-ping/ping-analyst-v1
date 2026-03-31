@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FileText, Settings, MapPin, Puzzle, Shield, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Plus, FileText, Settings, MapPin, Puzzle, Shield, PanelLeftClose, PanelLeftOpen, BarChart2 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -18,6 +18,7 @@ const navItems = [
   { title: "Analysis", url: "/analysis", icon: Plus },
   { title: "Deals", url: "/deals", icon: FileText },
   { title: "Comps", url: "/comps", icon: MapPin },
+  { title: "Market", url: "/market", icon: BarChart2 },
   { title: "Assumptions", url: "/settings", icon: Settings },
   { title: "Extension", url: "/extension", icon: Puzzle },
 ];
@@ -78,6 +79,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter className="mt-auto border-t border-sidebar-border p-2">
         <button
           onClick={toggleSidebar}
