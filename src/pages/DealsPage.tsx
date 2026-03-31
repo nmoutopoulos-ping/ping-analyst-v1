@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Settings, MapPin, GripVertical } from "lucide-react";
+import { Search, Settings, MapPin, GripVertical, Archive, X } from "lucide-react";
 import { getApiKey } from "@/lib/api";
-import { supabaseGetDeals, getDealImageUrl, supabaseUpdateDealStage } from "@/lib/supabase";
+import { supabaseGetDeals, supabaseGetArchivedDeals, getDealImageUrl, supabaseUpdateDealStage } from "@/lib/supabase";
 import { Deal } from "@/lib/types";
 import { KanbanColumn, getColumns, saveColumns } from "@/lib/kanbanColumns";
 import KanbanSettingsPanel from "@/components/KanbanSettingsPanel";
@@ -164,6 +164,9 @@ export default function DealsPage() {
   const [columns, setColumns] = useState<KanbanColumn[]>(getColumns);
   const [showSettings, setShowSettings] = useState(false);
   const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
+  const [showArchives, setShowArchives] = useState(false);
+  const [archivedDeals, setArchivedDeals] = useState<Deal[]>([]);
+  const [archivesLoading, setArchivesLoading] = useState(false);
   const navigate = useNavigate();
 
   const sensors = useSensors(
@@ -283,7 +286,59 @@ export default function DealsPage() {
         >
           <Settings className="h-4 w-4" />
         </button>
+        <button
+          onClick={() => {
+            setShowArchives(!showArchives);
+            if (!showArchives) {
+              const apiKey = getApiKey();
+              if (apiKey) {
+                setArchivesLoading(true);
+                supabaseGetArchivedDeals(apiKey)
+                  .then(setArchivedDeals)
+                  .finally(() => setArchivesLoading(false));
+              }
+            }
+          }}
+          className={`rounded-xl border border-border p-3 shadow-sm transition-colors ${showArchives ? "bg-accent text-accent-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
+          title="Archives"
+        >
+          <Archive className="h-4 w-4" />
+        </button>
       </div>
+
+      {showArchives && (
+        <div className="mt-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Archive className="h-4 w-4" /> Archived Deals
+            </h3>
+            <button onClick={() => setShowArchives(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {archivesLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+          {!archivesLoading && archivedDeals.length === 0 && (
+            <p className="text-sm text-muted-foreground">No archived deals.</p>
+          )}
+          {!archivesLoading && archivedDeals.length > 0 && (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {archivedDeals.map((deal) => (
+                <button
+                  key={deal.search_id}
+                  onClick={() => navigate(`/deals/${deal.search_id}`)}
+                  className="w-full flex items-center justify-between rounded-lg border border-border p-3 text-left hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{deal.short_address || deal.address}</p>
+                    <p className="text-xs text-muted-foreground">{deal.search_id} · {formatDate(deal.created_at)}</p>
+                  </div>
+                  <StageBadge stage={deal.stage} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {showSettings && (
         <div className="mt-4">

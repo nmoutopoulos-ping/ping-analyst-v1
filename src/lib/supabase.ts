@@ -147,7 +147,7 @@ export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   await _ensureValidToken();
   console.log("[supabaseGetDeals] apiKey:", apiKey ? `${apiKey.slice(0, 4)}...` : "NULL/EMPTY", "hasToken:", !!_accessToken);
   const res = await fetch(
-    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=neq.true&order=created_at.desc&select=*`,
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&or=(archived.is.null,archived.eq.false)&order=created_at.desc&select=*`,
     { headers: _headers() }
   );
   if (!res.ok) {
@@ -157,6 +157,16 @@ export async function supabaseGetDeals(apiKey: string): Promise<Deal[]> {
   const rows = await res.json();
   console.log("[supabaseGetDeals] fetched", rows.length, "deals");
   return rows;
+}
+
+export async function supabaseGetArchivedDeals(apiKey: string): Promise<Deal[]> {
+  await _ensureValidToken();
+  const res = await fetch(
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&archived=eq.true&order=created_at.desc&select=*`,
+    { headers: _headers() }
+  );
+  if (!res.ok) return [];
+  return res.json();
 }
 
 export async function supabaseGetDeal(
