@@ -16,12 +16,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Deal } from "@/lib/types";
-import MarketStatsDashboard from "@/components/MarketStatsDashboard";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 
 
 function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num") {
-  if (val == null) return "—";
+  if (val == null) return "â";
   if (type === "pct") return (val * 100).toFixed(1) + "%";
   if (type === "mult") return val.toFixed(1) + "x";
   if (type === "usd") return "$" + val.toLocaleString();
@@ -111,7 +110,7 @@ export default function DealDetailPage() {
               <div className="grid grid-cols-2 gap-y-3 text-sm">
                 {[
                   ["Date", new Date(deal.created_at).toLocaleDateString()],
-                  ["Total Units", m?.total_units ?? "—"],
+                  ["Total Units", m?.total_units ?? "â"],
                   ["Price", fmt(m?.price || m?.listing_price, "usd")],
                   ["Improvements", fmt(m?.cost, "usd")],
                   ["Building SQFT", fmt(m?.sqft, "num")],
@@ -143,7 +142,7 @@ export default function DealDetailPage() {
                   </div>
                   <div>
                     <span className="label-uppercase">Radius</span>
-                    <p className="mt-0.5 text-foreground">{m?.radius ? `${m.radius} mi` : "—"}</p>
+                    <p className="mt-0.5 text-foreground">{m?.radius ? `${m.radius} mi` : "â"}</p>
                   </div>
                 </div>
                 {c && c.length > 0 && (
@@ -178,7 +177,7 @@ export default function DealDetailPage() {
             {deal.assumptions_snapshot && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <h3 className="mb-4 text-sm font-semibold text-foreground">
-                  Assumptions{deal.preset_name ? ` — ${deal.preset_name}` : ""}
+                  Assumptions{deal.preset_name ? ` â ${deal.preset_name}` : ""}
                 </h3>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   {[
@@ -210,7 +209,7 @@ export default function DealDetailPage() {
                     ["Monthly Cash Flow", fmt(r.monthly_cash_flow, "usd")],
                     ["Loan Amount", fmt(r.loan_amount, "usd")],
                     ["Down Payment", fmt(r.down_payment, "usd")],
-                    ["DSCR", r.dscr?.toFixed(2) ?? "—"],
+                    ["DSCR", r.dscr?.toFixed(2) ?? "â"],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
                       <span className="label-uppercase">{label}</span>
@@ -221,12 +220,7 @@ export default function DealDetailPage() {
               </section>
             )}
 
-            {/* Market Intelligence */}
-            <section className="rounded-xl border border-border bg-card p-6">
-              <MarketStatsDashboard defaultZip={(deal.address?.match(/(\d{5})(?:\s|$|-)/) || [])[1] || ""} />
-            </section>
-
-              {/* Deal Photos */}
+                      {/* Deal Photos */}
               <section className="rounded-xl border border-border bg-card p-6">
                 <DealPhotoGallery dealId={id!} apiKey={getApiKey()} />
               </section>
@@ -325,7 +319,7 @@ export default function DealDetailPage() {
                   </button>
                 ) : (
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
-                    <Download className="h-4 w-4" /> Excel — Not available
+                    <Download className="h-4 w-4" /> Excel â Not available
                   </div>
                 )}
                 {(deal.docx_data || deal.docx_path) ? (
@@ -365,7 +359,7 @@ export default function DealDetailPage() {
                   </button>
                 ) : (
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
-                    <Download className="h-4 w-4" /> Word — Not available
+                    <Download className="h-4 w-4" /> Word â Not available
                   </div>
                 )}
               </div>
