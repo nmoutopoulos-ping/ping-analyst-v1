@@ -1,11 +1,11 @@
 /**
  * MarketStatsDashboard.jsx
  *
- * RentCast Market Intelligence Panel â CRM Integration Prototype
+ * RentCast Market Intelligence Panel -- CRM Integration Prototype
  *
  * HANDOFF NOTES FOR CLAUDE CODE:
  * âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
- * 1. CORS â WHY MOCK DATA IS ON:
+ * 1. CORS -- WHY MOCK DATA IS ON:
  *    RentCast does not allow direct browser-to-API calls (no CORS headers).
  *    USE_MOCK_DATA is set to TRUE for the Lovable prototype so you can
  *    build and validate the UI without a backend.
@@ -82,10 +82,10 @@ const MOCK_LISTINGS = [
 
 // âââ HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const fmt = (n) =>
-  n == null || isNaN(n) ? "â" : "$" + Math.round(n).toLocaleString();
+  n == null || isNaN(n) ? "--" : "$" + Math.round(n).toLocaleString();
 
 const fmtPct = (n) =>
-  n == null || isNaN(n) ? "â" : (n * 100).toFixed(1) + "%";
+  n == null || isNaN(n) ? "--" : (n * 100).toFixed(1) + "%";
 
 const BED_TYPES = [
   { key: "bedrooms_0", label: "Studio", color: "bg-violet-100 text-violet-800" },
@@ -146,13 +146,13 @@ function UnitRow({ bedType, data, maxRent }) {
       </td>
       <td className="py-3 pr-4 text-sm font-semibold text-gray-900">{fmt(data.averageRent)}</td>
       <td className="py-3 pr-4 text-xs text-gray-400">
-        {fmt(data.minRent)} â {fmt(data.maxRent)}
+        {fmt(data.minRent)} - {fmt(data.maxRent)}
       </td>
       <td className="py-3 pr-6 w-32 hidden sm:table-cell">
         <RentBar value={data.averageRent} max={maxRent} />
       </td>
       <td className="py-3 text-xs text-gray-400 text-right whitespace-nowrap">
-        {data.averageDaysOnMarket ? `${Math.round(data.averageDaysOnMarket)}d` : "â"}
+        {data.averageDaysOnMarket ? `${Math.round(data.averageDaysOnMarket)}d` : "--"}
       </td>
     </tr>
   );
@@ -163,7 +163,7 @@ function ListingRow({ listing }) {
     <div className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
       <div className="min-w-0 flex-1 pr-4">
         <div className="text-sm font-medium text-gray-800 truncate">
-          {listing.formattedAddress || listing.addressLine1 || "â"}
+          {listing.formattedAddress || listing.addressLine1 || "--"}
         </div>
         <div className="text-xs text-gray-400 mt-0.5">
           {[
@@ -172,7 +172,7 @@ function ListingRow({ listing }) {
             listing.squareFootage && `${Math.round(listing.squareFootage).toLocaleString()} sqft`,
           ]
             .filter(Boolean)
-            .join(" Â· ")}
+            .join(" * ")}
         </div>
       </div>
       <div className="text-sm font-semibold text-gray-900 whitespace-nowrap">
@@ -309,7 +309,7 @@ export default function MarketStatsDashboard({ defaultZip = "" }) {
             ) : (
               <Search size={14} />
             )}
-            {loading ? "Loadingâ¦" : "Fetch"}
+            {loading ? "Loading..." : "Fetch"}
           </button>
         </div>
 
@@ -343,10 +343,10 @@ export default function MarketStatsDashboard({ defaultZip = "" }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <MetricCard label="Avg rent" value={fmt(r.averageRent)} sub="per month" icon={TrendingUp} accent="blue" />
               <MetricCard label="Vacancy rate" value={fmtPct(r.averageVacancy)} sub="avg vacancy" icon={Home} accent="green" />
-              <MetricCard label="Days on market" value={r.averageDaysOnMarket ? `${Math.round(r.averageDaysOnMarket)}d` : "â"} sub="avg rental DOM" icon={Clock} accent="amber" />
-              <MetricCard label="Rent range" value={`${fmt(r.minRent)} â ${fmt(r.maxRent)}`} sub="min / max" accent="gray" />
+              <MetricCard label="Days on market" value={r.averageDaysOnMarket ? `${Math.round(r.averageDaysOnMarket)}d` : "--"} sub="avg rental DOM" icon={Clock} accent="amber" />
+              <MetricCard label="Rent range" value={`${fmt(r.minRent)} - ${fmt(r.maxRent)}`} sub="min / max" accent="gray" />
               <MetricCard label="Avg sale price" value={fmt(s.averagePrice)} sub="sale comps" icon={Building2} accent="violet" />
-              <MetricCard label="Sale DOM" value={s.averageDaysOnMarket ? `${Math.round(s.averageDaysOnMarket)}d` : "â"} sub="avg days on market" icon={Clock} accent="gray" />
+              <MetricCard label="Sale DOM" value={s.averageDaysOnMarket ? `${Math.round(s.averageDaysOnMarket)}d` : "--"} sub="avg days on market" icon={Clock} accent="gray" />
             </div>
 
             {/* Unit type breakdown */}
