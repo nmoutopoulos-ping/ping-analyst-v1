@@ -1,31 +1,33 @@
 /**
- * DealPhotoGallery.tsx — Photo gallery for a deal (URL-paste workflow)
+ * DealPhotoGallery.tsx -- Photo gallery for a deal
  * -------------------------------------------------------------------
- * Users paste image URLs to add photos. Supports:
- *   - Paste URL to add (multi-URL via newlines)
- *   - Responsive grid with smooth hover effects
- *   - Inline caption + label editing
- *   - Lightbox for full-size viewing
- *   - Drag-to-reorder via sort_order
- *   - Delete with confirmation
+ * Users can upload image files (single or batch) or paste image URLs.
+ * Supports:
+ * - File upload (single + batch) to Supabase Storage
+ * - Paste URL to add (multi-URL via newlines)
+ * - Responsive grid with smooth hover effects
+ * - Inline caption + label editing
+ * - Lightbox for full-size viewing
+ * - Drag-to-reorder via sort_order
+ * - Delete with confirmation
  *
  * Props:
- *   dealId  — UUID of the deal (from deals.id)
- *   apiKey  — current user's api_key
+ *   dealId -- UUID of the deal (from deals.id)
+ *   apiKey -- current user's api_key
  */
-
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { DealPhoto } from "../lib/types";
 import { PHOTO_LABELS } from "../lib/types";
 import {
   supabaseGetDealPhotos,
   supabaseAddDealPhotoUrl,
+  supabaseUploadDealPhoto,
   supabaseUpdateDealPhoto,
   supabaseDeleteDealPhoto,
   supabaseReorderDealPhotos,
 } from "../lib/supabase";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function isValidUrl(s: string): boolean {
   try {
@@ -36,7 +38,7 @@ function isValidUrl(s: string): boolean {
   }
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ââ Component ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 interface Props {
   dealId: string;
@@ -55,8 +57,10 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
-  // ── Fetch photos ───────────────────────────────────────────────────────────
+  // ââ Fetch photos âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   const loadPhotos = useCallback(async () => {
     setLoading(true);
@@ -69,7 +73,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     loadPhotos();
   }, [loadPhotos]);
 
-  // ── Add URL handler ────────────────────────────────────────────────────────
+  // ââ Add URL handler ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   async function handleAddUrl() {
     const urls = urlInput
@@ -95,7 +99,25 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     setAdding(false);
   }
 
-  // ── Inline edit ────────────────────────────────────────────────────────────
+  // ââ Inline edit ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+  // -- File upload handler ------------------------------------------------
+  async function handleFileUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const maxOrder = photos.length > 0
+      ? Math.max(...photos.map((p) => p.sort_order))
+      : -1;
+    const fileArr = Array.from(files);
+    for (let i = 0; i < fileArr.length; i++) {
+      await supabaseUploadDealPhoto(apiKey, dealId, fileArr[i], {
+        sortOrder: maxOrder + 1 + i,
+      });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    await loadPhotos();
+    setUploading(false);
+  }
 
   async function saveEdit(photo: DealPhoto, caption: string, label: string) {
     await supabaseUpdateDealPhoto(photo.id, {
@@ -108,7 +130,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     setEditingId(null);
   }
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
+  // ââ Delete âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   async function handleDelete(photo: DealPhoto) {
     await supabaseDeleteDealPhoto(photo);
@@ -117,7 +139,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     if (lightboxIdx !== null) setLightboxIdx(null);
   }
 
-  // ── Reorder via drag ───────────────────────────────────────────────────────
+  // ââ Reorder via drag âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   function onCardDragStart(idx: number) {
     setDragIdx(idx);
@@ -147,7 +169,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     );
   }
 
-  // ── Lightbox nav ───────────────────────────────────────────────────────────
+  // ââ Lightbox nav âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   function lightboxPrev() {
     if (lightboxIdx === null) return;
@@ -159,7 +181,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     setLightboxIdx(lightboxIdx < photos.length - 1 ? lightboxIdx + 1 : 0);
   }
 
-  // ── Keyboard nav for lightbox ──────────────────────────────────────────────
+  // ââ Keyboard nav for lightbox ââââââââââââââââââââââââââââââââââââââââââââââ
 
   useEffect(() => {
     if (lightboxIdx === null) return;
@@ -173,7 +195,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightboxIdx, photos.length]);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ââ Render âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
   const lightboxPhoto = lightboxIdx !== null ? photos[lightboxIdx] : null;
 
@@ -207,13 +229,40 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
             </>
           )}
         </button>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-zinc-700 disabled:opacity-50"
+          >
+            {uploading ? (
+              <>
+                <Spinner />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <UploadIcon />
+                Upload Files
+              </>
+            )}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFileUpload(e.target.files)}
+          />
       </div>
 
       {/* Add URL form */}
       {showAddForm && (
         <div className="rounded-xl border border-zinc-700 bg-zinc-900/80 p-4 space-y-3">
           <label className="block text-xs font-medium text-zinc-400">
-            Paste image URL(s) — one per line
+            Paste image URL(s) â one per line
           </label>
           <input
             ref={urlInputRef}
@@ -263,15 +312,22 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
           <CameraIcon />
           <p className="mt-3 text-sm text-zinc-400">
             No photos yet.{" "}
-            <button
-              onClick={() => {
-                setShowAddForm(true);
-                setTimeout(() => urlInputRef.current?.focus(), 50);
-              }}
-              className="text-blue-400 underline underline-offset-2 hover:text-blue-300"
-            >
-              Add a photo URL
-            </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-blue-400 underline underline-offset-2 hover:text-blue-300"
+              >
+                Upload files
+              </button>
+              {" or "}
+              <button
+                onClick={() => {
+                  setShowAddForm(true);
+                  setTimeout(() => urlInputRef.current?.focus(), 50);
+                }}
+                className="text-blue-400 underline underline-offset-2 hover:text-blue-300"
+              >
+                paste a URL
+              </button>
           </p>
         </div>
       )}
@@ -367,7 +423,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
         </div>
       )}
 
-      {/* ── Edit modal ──────────────────────────────────────────────────────── */}
+      {/* ââ Edit modal ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {editingId && (
         <EditModal
           photo={photos.find((p) => p.id === editingId)!}
@@ -376,7 +432,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
         />
       )}
 
-      {/* ── Delete confirmation ──────────────────────────────────────────────── */}
+      {/* ââ Delete confirmation ââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {deleteConfirm && (
         <ConfirmModal
           message="Delete this photo? This cannot be undone."
@@ -388,7 +444,7 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
         />
       )}
 
-      {/* ── Lightbox ─────────────────────────────────────────────────────────── */}
+      {/* ââ Lightbox âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       {lightboxPhoto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
@@ -454,9 +510,9 @@ export default function DealPhotoGallery({ dealId, apiKey }: Props) {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Sub-components
-// ═════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function EditModal({
   photo,
@@ -564,9 +620,9 @@ function ConfirmModal({
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Inline SVG Icons (no external deps needed)
-// ═════════════════════════════════════════════════════════════════════════════
+// âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 function PlusIcon() {
   return (
@@ -591,6 +647,17 @@ function TrashIcon() {
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+
+function UploadIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   );
 }
