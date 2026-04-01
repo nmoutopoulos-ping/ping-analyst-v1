@@ -17,8 +17,17 @@ export interface Deal {
   }[];
   assumptions_snapshot?: Assumptions;
   preset_name?: string;
-  search_meta: {
-    address: string;
+  // Top-level columns from DB (stored as text)
+  price?: string;
+  cost?: string;
+  sqft?: string;
+  total_units?: string;
+  radius?: string;
+  deal_stage?: string;
+  combos?: { bed: number; bath: number; units: number }[];
+  // Legacy field -- kept for backward compat but not populated from DB
+  search_meta?: {
+    address?: string;
     listing_price?: number;
     price?: number;
     cost?: number;
