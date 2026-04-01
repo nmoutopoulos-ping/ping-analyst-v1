@@ -69,7 +69,6 @@ export default function DealDetailPage() {
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
 
   const r = deal.results;
-  const m = deal.search_meta;
   const c = deal.comp_summary;
 
   return (
@@ -110,10 +109,10 @@ export default function DealDetailPage() {
               <div className="grid grid-cols-2 gap-y-3 text-sm">
                 {[
                   ["Date", new Date(deal.created_at).toLocaleDateString()],
-                  ["Total Units", m?.total_units ?? "--"],
-                  ["Price", fmt(m?.price || m?.listing_price, "usd")],
-                  ["Improvements", fmt(m?.cost, "usd")],
-                  ["Building SQFT", fmt(m?.sqft, "num")],
+                  ["Total Units", deal.total_units ?? "--"],
+                  ["Price", fmt(Number(deal.price) || undefined, "usd")],
+                  ["Improvements", fmt(Number(deal.cost) || undefined, "usd")],
+                  ["Building SQFT", fmt(Number(deal.sqft) || undefined, "num")],
                   ["Submitted By", deal.email],
                 ].map(([label, val]) => (
                   <div key={String(label)}>
@@ -142,7 +141,7 @@ export default function DealDetailPage() {
                   </div>
                   <div>
                     <span className="label-uppercase">Radius</span>
-                    <p className="mt-0.5 text-foreground">{m?.radius ? `${m.radius} mi` : "--"}</p>
+                    <p className="mt-0.5 text-foreground">{deal.radius ? `${deal.radius} mi` : "--"}</p>
                   </div>
                 </div>
                 {c && c.length > 0 && (
