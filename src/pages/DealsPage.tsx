@@ -35,7 +35,7 @@ function formatDate(iso: string) {
 }
 
 function formatPrice(n?: number) {
-  if (!n) return "â";
+  if (!n) return "--";
   return "$" + n.toLocaleString();
 }
 
@@ -65,12 +65,12 @@ function DealCard({ deal, navigate, isDragging }: { deal: Deal; navigate: (path:
       <div className="mt-3 flex gap-6">
         <div>
           <div className="label-uppercase">Units</div>
-          <p className="text-sm font-medium text-foreground">{deal.search_meta?.total_units ?? "â"}</p>
+          <p className="text-sm font-medium text-foreground">{deal.total_units ?? "--"}</p>
         </div>
         <div>
           <div className="label-uppercase">$ Price</div>
           <p className="text-sm font-medium text-foreground">
-            {formatPrice(deal.search_meta?.price || deal.search_meta?.listing_price)}
+            {formatPrice(Number(deal.price) || undefined)}
           </p>
         </div>
       </div>
@@ -350,7 +350,7 @@ export default function DealsPage() {
         </div>
       )}
 
-      {loading && <p className="mt-8 text-sm text-muted-foreground">Loadingâ¦</p>}
+      {loading && <p className="mt-8 text-sm text-muted-foreground">Loading...</p>}
       {error && <p className="mt-8 text-sm text-destructive">{error}</p>}
 
       {!loading && !error && (
