@@ -41,43 +41,40 @@ function formatPrice(n?: number) {
 
 /* ââ Draggable Deal Card ââ */
 function DealCard({ deal, navigate, isDragging }: { deal: Deal; navigate: (path: string) => void; isDragging?: boolean }) {
+  const imageUrl = getDealImageUrl(deal);
   return (
     <div
-      className={`w-full rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-shadow duration-150 ${isDragging ? "opacity-50 shadow-lg" : "hover:shadow-md"}`}
+      className={`w-full rounded-xl border border-border bg-card text-left overflow-hidden transition-all duration-200 ${isDragging ? "opacity-60 shadow-xl scale-[1.02] ring-2 ring-accent/40" : "hover:shadow-lg hover:-translate-y-0.5"}`}
     >
-        {getDealImageUrl(deal) && (
-          <div className="w-full h-32 overflow-hidden rounded-t-lg -mt-3 -mx-3 mb-2" style={{width: "calc(100% + 1.5rem)"}}>
-            <img src={getDealImageUrl(deal)} alt={deal.address} className="w-full h-full object-cover" />
+      {imageUrl && (
+        <div className="w-full h-28 overflow-hidden">
+          <img src={imageUrl} alt={deal.address} className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="p-3.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-mono text-[11px] font-semibold text-accent truncate">{deal.search_id}</p>
+          <StageBadge stage={deal.stage} />
+        </div>
+
+        <div className="mt-2 flex items-start gap-1.5">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+          <p className="text-sm font-medium text-foreground leading-snug">{deal.short_address || deal.address}</p>
+        </div>
+
+        <p className="mt-1.5 text-[11px] text-muted-foreground">{formatDate(deal.created_at)}</p>
+
+        <div className="mt-3 flex items-center gap-3 border-t border-border/50 pt-3">
+          <div className="flex-1 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Units</p>
+            <p className="text-sm font-semibold text-foreground">{deal.total_units ?? "—"}</p>
           </div>
-        )}
-      <div className="label-uppercase text-accent">SEARCH ID</div>
-      <p className="font-mono text-sm font-semibold text-foreground">{deal.search_id}</p>
-      <p className="text-xs text-muted-foreground">{formatDate(deal.created_at)}</p>
-
-      <div className="mt-3 flex items-start gap-1.5">
-        <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
-        <div>
-          <div className="label-uppercase">Property</div>
-          <p className="text-sm text-foreground">{deal.short_address || deal.address}</p>
+          <div className="w-px h-6 bg-border/50" />
+          <div className="flex-1 text-center">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Price</p>
+            <p className="text-sm font-semibold text-foreground">{formatPrice(Number(deal.price) || undefined)}</p>
+          </div>
         </div>
-      </div>
-
-      <div className="mt-3 flex gap-6">
-        <div>
-          <div className="label-uppercase">Units</div>
-          <p className="text-sm font-medium text-foreground">{deal.total_units ?? "--"}</p>
-        </div>
-        <div>
-          <div className="label-uppercase">$ Price</div>
-          <p className="text-sm font-medium text-foreground">
-            {formatPrice(Number(deal.price) || undefined)}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3">
-        <div className="label-uppercase">Status</div>
-        <StageBadge stage={deal.stage} className="mt-1" />
       </div>
     </div>
   );
