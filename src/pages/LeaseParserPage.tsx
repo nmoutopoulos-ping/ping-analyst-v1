@@ -1,9 +1,16 @@
 import { useState, useRef } from "react";
-import { Download, FileUp, Upload, Loader2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { Download, FileUp, Upload, Loader2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import {
+  supabaseUploadLeaseFile,
+  supabaseSaveLeaseExtraction,
+  supabaseGetLeaseExtractions,
+  supabaseDeleteLeaseExtraction,
+  supabaseCreateLeaseSignedUrl,
+} from "@/lib/supabase";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -55,6 +62,16 @@ interface QueueItem {
   status: FileStatus;
   result?: ParseResult;
   error?: string;
+}
+
+interface SavedLease {
+  id: string;
+  filename: string;
+  tenant_name: string | null;
+  property_address: string | null;
+  base_rent_monthly: number | null;
+  created_at: string;
+  [key: string]: unknown;
 }
 
 interface FieldConfig {
@@ -112,6 +129,26 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return dateString;
+  }
+}
+
+function getApiKey(): string | null {
+  try {
+    const token = localStorage.getItem("sb_access_token");
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.user_metadata?.api_key || null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -281,17 +318,32 @@ function ProgressBar({ queue }: { queue: QueueItem[] }) {
   );
 }
 
-function SingleResult({ item, onBack }: { item: QueueItem; onBack: () => void }) {
-  const result = item.result!;
+function SingleResult({
+  item,
+  onBack,
+  isSavedLease = false,
+}: {
+  item: QueueItem | SavedLease;
+  onBack: () => void;
+  isSavedLease?: boolean;
+}) {
+  const isQueueItem = "file" in item;
+  const result = isQueueItem ? (item as QueueItem).result : null;
+  const filename = isQueueItem ? (item as QueueItem).file.name : (item as SavedLease).filename;
+  const fileSize = isQueueItem ? (item as QueueItem).file.size : undefined;
+
+  // For saved leases, reconstruct parsed data from the item
+  const parsed = result?.parsed || (isSavedLease ? (item as SavedLease) : null);
+  const usage = result?.usage;
 
   return (
     <div>
       <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
-        <ChevronLeft className="h-4 w-4" /> Back to all results
+        <ChevronLeft className="h-4 w-4" /> Back
       </button>
 
-      <h2 className="text-xl font-bold text-foreground mb-1">{item.file.name}</h2>
-      <p className="text-sm text-muted-foreground mb-6">{formatBytes(item.file.size)}</p>
+      <h2 className="text-xl font-bold text-foreground mb-1">{filename}</h2>
+      {fileSize && <p className="text-sm text-muted-foreground mb-6">{formatBytes(fileSize)}</p>}
 
       <div className="grid gap-6 mb-8">
         {sections.map((section) => {
@@ -307,11 +359,13 @@ function SingleResult({ item, onBack }: { item: QueueItem; onBack: () => void })
                   {fieldsInSection.map(([fieldName, config]) => (
                     <div key={fieldName} className="space-y-1">
                       <p className="text-sm font-medium text-foreground">{config.label}</p>
-                      <FieldValue
-                        value={result.parsed[fieldName as keyof LeaseFields]}
-                        fieldName={fieldName}
-                        confidentlyExtracted={result.parsed.confidently_extracted}
-                      />
+                      {parsed && (
+                        <FieldValue
+                          value={parsed[fieldName as keyof LeaseFields]}
+                          fieldName={fieldName}
+                          confidentlyExtracted={(parsed as any).confidently_extracted}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -321,13 +375,13 @@ function SingleResult({ item, onBack }: { item: QueueItem; onBack: () => void })
         })}
       </div>
 
-      {result.usage && (
+      {usage && (
         <Card className="bg-muted/50 border-border/50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <span>Prompt tokens: {result.usage.prompt_tokens.toLocaleString()}</span>
-              <span>Completion tokens: {result.usage.completion_tokens.toLocaleString()}</span>
-              <span className="font-semibold">Cost: ${result.usage.estimated_cost.toFixed(4)}</span>
+              <span>Prompt tokens: {usage.prompt_tokens.toLocaleString()}</span>
+              <span>Completion tokens: {usage.completion_tokens.toLocaleString()}</span>
+              <span className="font-semibold">Cost: ${usage.estimated_cost.toFixed(4)}</span>
             </div>
           </CardContent>
         </Card>
@@ -339,9 +393,14 @@ function SingleResult({ item, onBack }: { item: QueueItem; onBack: () => void })
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function LeaseParserPage() {
+  const [tab, setTab] = useState<"parse" | "saved">("parse");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [processing, setProcessing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [savedLeases, setSavedLeases] = useState<SavedLease[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+  const [viewingSavedId, setViewingSavedId] = useState<string | null>(null);
   const abortRef = useRef(false);
   const { toast } = useToast();
 
@@ -428,18 +487,15 @@ export default function LeaseParserPage() {
     for (const item of pending) {
       if (abortRef.current) break;
 
-      // Mark as parsing
       setQueue((prev) => prev.map((q) => (q.id === item.id ? { ...q, status: "parsing" as FileStatus } : q)));
 
       const result = await parseOneFile(item, token);
 
-      // Update with result
       setQueue((prev) => prev.map((q) => (q.id === item.id ? result : q)));
     }
 
     setProcessing(false);
 
-    const finalQueue = queue; // stale, but toast is just informational
     const doneCount = pending.length;
     toast({ title: "Batch complete", description: `Processed ${doneCount} file(s).` });
   };
@@ -448,7 +504,153 @@ export default function LeaseParserPage() {
     abortRef.current = true;
   };
 
-  // ── Downloads ─────────────────────────────────────────────────────────────
+  // ── Save functionality ────────────────────────────────────────────────────
+
+  const handleSaveAll = async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      toast({
+        title: "Error",
+        description: "Could not extract API key. Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const successfulResults = queue.filter((q) => q.status === "done" && q.result);
+    if (successfulResults.length === 0) {
+      toast({
+        title: "Nothing to save",
+        description: "No successfully parsed files to save.",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    let savedCount = 0;
+    for (let i = 0; i < successfulResults.length; i++) {
+      const item = successfulResults[i];
+      const progress = `${i + 1} of ${successfulResults.length}`;
+
+      try {
+        // Upload file to storage
+        const storagePath = await supabaseUploadLeaseFile(apiKey, item.file);
+        if (!storagePath) {
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload ${item.file.name}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Save extraction data to database
+        const extractionData = {
+          api_key: apiKey,
+          filename: item.file.name,
+          file_size: item.file.size,
+          storage_path: storagePath,
+          ...item.result!.parsed,
+          prompt_tokens: item.result!.usage.prompt_tokens,
+          completion_tokens: item.result!.usage.completion_tokens,
+          estimated_cost: item.result!.usage.estimated_cost,
+        };
+
+        const saved = await supabaseSaveLeaseExtraction(extractionData);
+        if (saved) {
+          savedCount++;
+        } else {
+          toast({
+            title: "Save failed",
+            description: `Failed to save metadata for ${item.file.name}`,
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        console.error("Save error:", err);
+      }
+    }
+
+    setSaving(false);
+
+    if (savedCount > 0) {
+      toast({
+        title: "Success",
+        description: `Saved ${savedCount} lease(s) to your library`,
+      });
+    }
+  };
+
+  // ── Saved leases functionality ────────────────────────────────────────────
+
+  const loadSavedLeases = async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      toast({
+        title: "Error",
+        description: "Could not extract API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoadingSaved(true);
+    const leases = await supabaseGetLeaseExtractions(apiKey);
+    setSavedLeases(leases as SavedLease[]);
+    setLoadingSaved(false);
+  };
+
+  const handleDeleteLease = async (id: string) => {
+    const success = await supabaseDeleteLeaseExtraction(id);
+    if (success) {
+      setSavedLeases((prev) => prev.filter((l) => l.id !== id));
+      toast({
+        title: "Deleted",
+        description: "Lease extraction removed from library",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to delete lease extraction",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadOriginal = async (lease: SavedLease) => {
+    const storagePath = lease.storage_path as string | null;
+    if (!storagePath) {
+      toast({
+        title: "Error",
+        description: "No storage path found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const signedUrl = await supabaseCreateLeaseSignedUrl(storagePath);
+    if (signedUrl) {
+      window.open(signedUrl, "_blank");
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to generate download link",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadJson = (lease: SavedLease) => {
+    const json = JSON.stringify(lease, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${lease.filename.replace(/\.[^.]+$/, "")}-parsed.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleDownloadAll = () => {
     const results = queue
@@ -500,7 +702,9 @@ export default function LeaseParserPage() {
   // ── Detail view ───────────────────────────────────────────────────────────
 
   const viewingItem = viewingId ? queue.find((q) => q.id === viewingId) : null;
+  const viewingSaved = viewingSavedId ? savedLeases.find((l) => l.id === viewingSavedId) : null;
 
+  // Detail view for individual parsed result
   if (viewingItem?.status === "done" && viewingItem.result) {
     return (
       <main className="max-w-6xl mx-auto px-4 py-8">
@@ -521,6 +725,109 @@ export default function LeaseParserPage() {
     );
   }
 
+  // Detail view for saved lease
+  if (viewingSaved) {
+    return (
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Saved Lease Details</h1>
+        </div>
+        <SingleResult item={viewingSaved as any} onBack={() => setViewingSavedId(null)} isSavedLease />
+
+        <div className="flex gap-3 mt-8">
+          <Button onClick={() => handleDownloadJson(viewingSaved)} className="gap-2">
+            <Download className="h-4 w-4" /> Download JSON
+          </Button>
+          <Button onClick={() => handleDownloadOriginal(viewingSaved)} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" /> Download Original
+          </Button>
+          <Button onClick={() => handleDeleteLease(viewingSaved.id)} variant="destructive" className="gap-2">
+            <Trash2 className="h-4 w-4" /> Delete
+          </Button>
+          <Button variant="outline" onClick={() => setViewingSavedId(null)}>
+            Back to Library
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  // Saved Leases tab
+  if (tab === "saved") {
+    return (
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
+          <p className="text-base text-muted-foreground">Manage and review your saved lease extractions.</p>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex gap-0 mb-8 border-b border-border">
+          <button
+            onClick={() => setTab("parse")}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Parse New
+          </button>
+          <button
+            onClick={() => {
+              setTab("saved");
+              loadSavedLeases();
+            }}
+            className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
+          >
+            Saved Leases
+          </button>
+        </div>
+
+        {loadingSaved ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : savedLeases.length === 0 ? (
+          <Card className="border-border/50">
+            <CardContent className="pt-12 pb-12 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground">No saved leases yet.</p>
+              <p className="text-sm text-muted-foreground mb-6">Parse some leases and save them to build your library.</p>
+              <Button onClick={() => setTab("parse")} variant="outline">
+                Parse New Leases
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {savedLeases.map((lease) => (
+              <div
+                key={lease.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-card hover:bg-muted/50 px-4 py-3 cursor-pointer"
+                onClick={() => setViewingSavedId(lease.id)}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{lease.filename}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lease.tenant_name && `${lease.tenant_name}`}
+                      {lease.tenant_name && lease.property_address && " — "}
+                      {lease.property_address}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {lease.base_rent_monthly && `$${(lease.base_rent_monthly as number).toLocaleString()}/mo`}
+                      {lease.base_rent_monthly && lease.created_at && " • "}
+                      {lease.created_at && formatDate(lease.created_at as string)}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-3" />
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    );
+  }
+
   // ── Results summary view ──────────────────────────────────────────────────
 
   if (allDone) {
@@ -530,8 +837,34 @@ export default function LeaseParserPage() {
 
     return (
       <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
+          <p className="text-base text-muted-foreground">
+            Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
+          </p>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex gap-0 mb-8 border-b border-border">
+          <button
+            onClick={() => setTab("parse")}
+            className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
+          >
+            Parse New
+          </button>
+          <button
+            onClick={() => {
+              setTab("saved");
+              loadSavedLeases();
+            }}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Saved Leases
+          </button>
+        </div>
+
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Batch Results</h1>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Batch Results</h2>
           <p className="text-sm text-muted-foreground">
             {doneCount} parsed successfully{errorCount > 0 ? `, ${errorCount} failed` : ""} — Total cost: ${totalCost.toFixed(4)}
           </p>
@@ -584,9 +917,22 @@ export default function LeaseParserPage() {
 
         <div className="flex gap-3">
           {doneCount > 0 && (
-            <Button onClick={handleDownloadAll} className="gap-2">
-              <Download className="h-4 w-4" /> Download All ({doneCount}) as JSON
-            </Button>
+            <>
+              <Button onClick={handleDownloadAll} className="gap-2">
+                <Download className="h-4 w-4" /> Download All ({doneCount}) as JSON
+              </Button>
+              <Button onClick={handleSaveAll} disabled={saving} className="gap-2">
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" /> Save All Results
+                  </>
+                )}
+              </Button>
+            </>
           )}
           <Button variant="outline" onClick={handleReset}>
             Start New Batch
@@ -605,6 +951,25 @@ export default function LeaseParserPage() {
         <p className="text-base text-muted-foreground">
           Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
         </p>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-0 mb-8 border-b border-border">
+        <button
+          onClick={() => setTab("parse")}
+          className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
+        >
+          Parse New
+        </button>
+        <button
+          onClick={() => {
+            setTab("saved");
+            loadSavedLeases();
+          }}
+          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Saved Leases
+        </button>
       </div>
 
       <Card className="border border-border shadow-sm">

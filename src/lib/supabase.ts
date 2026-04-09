@@ -685,3 +685,132 @@ export async function supabaseMarkAllNotificationsRead(apiKey: string) {
   if (!res.ok) throw new Error("Failed to mark all notifications read");
   return res.json();
 }
+
+// ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ Lease extraction helpers ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+
+/**
+ * Upload a lease document to Supabase Storage.
+ * Returns the storage path on success, null on failure.
+ */
+export async function supabaseUploadLeaseFile(apiKey: string, file: File): Promise<string | null> {
+  await _ensureValidToken();
+
+  // Build a unique storage path
+  const timestamp = Date.now();
+  const storagePath = `${apiKey}/${timestamp}_${file.name}`;
+
+  // Upload to Supabase Storage
+  const uploadRes = await fetch(
+    SB_URL + "/storage/v1/object/lease-files/" + storagePath,
+    {
+      method: "POST",
+      headers: {
+        "apikey": SB_KEY,
+        "Authorization": "Bearer " + _accessToken,
+        "Content-Type": file.type || "application/octet-stream",
+      },
+      body: file,
+    }
+  );
+
+  if (!uploadRes.ok) {
+    console.error("Storage upload failed:", await uploadRes.text());
+    return null;
+  }
+
+  return storagePath;
+}
+
+/**
+ * Save lease extraction data to the database.
+ * Data should include api_key, filename, file_size, storage_path, all 24 lease fields,
+ * prompt_tokens, completion_tokens, and estimated_cost.
+ */
+export async function supabaseSaveLeaseExtraction(data: Record<string, unknown>): Promise<boolean> {
+  await _ensureValidToken();
+
+  const res = await fetch(SB_URL + "/rest/v1/lease_extractions", {
+    method: "POST",
+    headers: { ..._headers(), "Prefer": "return=minimal" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    console.error("Lease extraction save failed:", await res.text());
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Fetch all lease extractions for a given API key.
+ * Returns array of lease extraction records, ordered by created_at descending.
+ */
+export async function supabaseGetLeaseExtractions(apiKey: string): Promise<Record<string, unknown>[]> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_extractions?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&select=*`,
+    { headers: _headers() }
+  );
+
+  if (!res.ok) {
+    console.error("Get lease extractions failed:", res.status, await res.text());
+    return [];
+  }
+
+  return res.json();
+}
+
+/**
+ * Delete a lease extraction record by ID.
+ * Returns true on success, false on failure.
+ */
+export async function supabaseDeleteLeaseExtraction(id: string): Promise<boolean> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_extractions?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+      headers: _headers(),
+    }
+  );
+
+  if (!res.ok) {
+    console.error("Delete lease extraction failed:", await res.text());
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Create a signed URL for a lease file in storage.
+ * Returns the full signed URL on success, null on failure.
+ */
+export async function supabaseCreateLeaseSignedUrl(storagePath: string): Promise<string | null> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/storage/v1/object/sign/lease-files/${storagePath}`,
+    {
+      method: "POST",
+      headers: {
+        "apikey": SB_KEY,
+        "Authorization": "Bearer " + _accessToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ expiresIn: 3600 }),
+    }
+  );
+
+  if (!res.ok) {
+    console.error("Create signed URL failed:", await res.text());
+    return null;
+  }
+
+  const data = await res.json();
+  return data.signedURL ? `${SB_URL}/storage/v1${data.signedURL}` : null;
+}
