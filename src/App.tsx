@@ -12,6 +12,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import CompsPage from "@/pages/CompsPage";
 import AdminPage from "@/pages/AdminPage";
 import MarketSearchPage from "@/pages/MarketSearchPage";
+import LeaseParserPage from "@/pages/LeaseParserPage";
 import NotFound from "@/pages/NotFound";
 import { useEffect } from "react";
 import { supabaseRestoreSession } from "@/lib/supabase";
@@ -43,6 +44,7 @@ const App = () => (
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/comps" element={<ProtectedRoute><CompsPage /></ProtectedRoute>} />
         <Route path="/market" element={<ProtectedRoute><MarketSearchPage /></ProtectedRoute>} />
+        <Route path="/lease-parser" element={<ProtectedRoute><LeaseParserPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, FileText, Settings, MapPin, Puzzle, Shield, PanelLeftClose, PanelLeftOpen, BarChart2 } from "lucide-react";
+import { Plus, FileText, Settings, MapPin, Puzzle, Shield, PanelLeftClose, PanelLeftOpen, BarChart2, FileUp } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -19,6 +19,7 @@ const navItems = [
   { title: "Deals", url: "/deals", icon: FileText },
   { title: "Comps", url: "/comps", icon: MapPin },
   { title: "Market", url: "/market", icon: BarChart2 },
+  { title: "Lease Parser", url: "/lease-parser", icon: FileUp },
   { title: "Assumptions", url: "/settings", icon: Settings },
   { title: "Extension", url: "/extension", icon: Puzzle },
 ];
