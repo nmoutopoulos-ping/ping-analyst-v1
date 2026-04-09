@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
-import { Download, FileUp, Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState, useRef } from "react";
+import { Download, FileUp, Upload, Loader2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface LeaseFields {
   tenant_name: string | null;
@@ -45,52 +47,74 @@ interface ParseResult {
   usage: UsageInfo;
 }
 
+type FileStatus = "pending" | "parsing" | "done" | "error";
+
+interface QueueItem {
+  id: string;
+  file: File;
+  status: FileStatus;
+  result?: ParseResult;
+  error?: string;
+}
+
 interface FieldConfig {
   label: string;
   section: string;
   isArray?: boolean;
 }
 
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const MAX_FILES = 20;
+const VALID_EXTENSIONS = [".pdf", ".txt", ".csv", ".xlsx"];
+const API_URL = "https://analyst-ra00.onrender.com/api/parse-lease";
+
 const fieldConfigs: Record<string, FieldConfig> = {
-  // Tenant Info
   tenant_name: { label: "Tenant Name", section: "Tenant Info" },
   tenant_entity_type: { label: "Entity Type", section: "Tenant Info" },
   guarantor_name: { label: "Guarantor Name", section: "Tenant Info" },
-
-  // Property
   property_address: { label: "Property Address", section: "Property" },
   unit_number: { label: "Unit Number", section: "Property" },
   asset_class: { label: "Asset Class", section: "Property" },
-
-  // Lease Terms
   lease_start_date: { label: "Lease Start Date", section: "Lease Terms" },
   lease_end_date: { label: "Lease End Date", section: "Lease Terms" },
   lease_term_months: { label: "Lease Term (months)", section: "Lease Terms" },
-
-  // Rent
   base_rent_monthly: { label: "Base Rent (monthly)", section: "Rent" },
   base_rent_annual: { label: "Base Rent (annual)", section: "Rent" },
   rent_escalation_type: { label: "Escalation Type", section: "Rent" },
   rent_escalation_value: { label: "Escalation Value", section: "Rent" },
   free_rent_months: { label: "Free Rent (months)", section: "Rent" },
   security_deposit: { label: "Security Deposit", section: "Rent" },
-
-  // Expenses
   expense_structure: { label: "Expense Structure", section: "Expenses" },
   tenant_responsible_expenses: { label: "Tenant Responsible", section: "Expenses", isArray: true },
   landlord_responsible_expenses: { label: "Landlord Responsible", section: "Expenses", isArray: true },
   tenant_improvement_allowance: { label: "Tenant Improvement Allowance", section: "Expenses" },
-
-  // Options
   renewal_options: { label: "Renewal Options", section: "Options" },
   termination_option: { label: "Termination Option", section: "Options" },
   termination_notice_months: { label: "Termination Notice (months)", section: "Options" },
-
-  // Confidence
   notes: { label: "Notes", section: "Confidence" },
 };
 
 const sections = ["Tenant Info", "Property", "Lease Terms", "Rent", "Expenses", "Options", "Confidence"];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function fileId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+function hasValidExtension(name: string): boolean {
+  const lower = name.toLowerCase();
+  return VALID_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function FieldValue({ value, fieldName, confidentlyExtracted }: { value: unknown; fieldName: string; confidentlyExtracted: string[] | null }) {
   const isConfident = confidentlyExtracted?.includes(fieldName);
@@ -134,7 +158,7 @@ function FieldValue({ value, fieldName, confidentlyExtracted }: { value: unknown
   );
 }
 
-function DropZone({ onFileSelected, loading }: { onFileSelected: (file: File) => void; loading: boolean }) {
+function DropZone({ onFilesSelected, disabled }: { onFilesSelected: (files: File[]) => void; disabled: boolean }) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -142,22 +166,19 @@ function DropZone({ onFileSelected, loading }: { onFileSelected: (file: File) =>
     setIsDragging(true);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
+  const handleDragLeave = () => setIsDragging(false);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      onFileSelected(files[0]);
-    }
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) onFilesSelected(files);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
-      onFileSelected(e.target.files[0]);
+      onFilesSelected(Array.from(e.target.files));
+      e.target.value = "";
     }
   };
 
@@ -168,30 +189,160 @@ function DropZone({ onFileSelected, loading }: { onFileSelected: (file: File) =>
       onDrop={handleDrop}
       className={`relative rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
         isDragging ? "border-primary bg-primary/5" : "border-border bg-card"
-      } ${loading ? "opacity-50 pointer-events-none" : ""}`}
+      } ${disabled ? "opacity-50 pointer-events-none" : ""}`}
     >
       <input
         type="file"
         id="file-input"
         onChange={handleFileInput}
         accept=".pdf,.txt,.csv,.xlsx"
-        disabled={loading}
+        multiple
+        disabled={disabled}
         className="hidden"
       />
       <label htmlFor="file-input" className="cursor-pointer">
         <Upload className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-        <h3 className="font-semibold text-foreground mb-1">Drop your lease document here</h3>
+        <h3 className="font-semibold text-foreground mb-1">Drop your lease documents here</h3>
         <p className="text-sm text-muted-foreground mb-4">or click to browse</p>
-        <p className="text-xs text-muted-foreground">Supported: PDF, TXT, CSV, XLSX</p>
+        <p className="text-xs text-muted-foreground">Up to {MAX_FILES} files — PDF, TXT, CSV, XLSX</p>
       </label>
     </div>
   );
 }
 
+function QueueList({ queue, onRemove, disabled }: { queue: QueueItem[]; onRemove: (id: string) => void; disabled: boolean }) {
+  return (
+    <div className="space-y-2">
+      {queue.map((item) => (
+        <div
+          key={item.id}
+          className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{item.file.name}</p>
+              <p className="text-xs text-muted-foreground">{formatBytes(item.file.size)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            {item.status === "pending" && (
+              <Badge variant="secondary" className="text-xs">Pending</Badge>
+            )}
+            {item.status === "parsing" && (
+              <Badge className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Parsing
+              </Badge>
+            )}
+            {item.status === "done" && (
+              <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+              </Badge>
+            )}
+            {item.status === "error" && (
+              <Badge variant="destructive" className="text-xs">
+                <AlertCircle className="h-3 w-3 mr-1" /> Error
+              </Badge>
+            )}
+            {item.status === "pending" && !disabled && (
+              <button onClick={() => onRemove(item.id)} className="text-muted-foreground hover:text-foreground p-1">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProgressBar({ queue }: { queue: QueueItem[] }) {
+  const done = queue.filter((q) => q.status === "done").length;
+  const errors = queue.filter((q) => q.status === "error").length;
+  const total = queue.length;
+  const completed = done + errors;
+  const pct = total > 0 ? (completed / total) * 100 : 0;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-sm">
+        <span className="text-muted-foreground">
+          Processing {completed} of {total} files...
+        </span>
+        <span className="font-medium text-foreground">{Math.round(pct)}%</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SingleResult({ item, onBack }: { item: QueueItem; onBack: () => void }) {
+  const result = item.result!;
+
+  return (
+    <div>
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+        <ChevronLeft className="h-4 w-4" /> Back to all results
+      </button>
+
+      <h2 className="text-xl font-bold text-foreground mb-1">{item.file.name}</h2>
+      <p className="text-sm text-muted-foreground mb-6">{formatBytes(item.file.size)}</p>
+
+      <div className="grid gap-6 mb-8">
+        {sections.map((section) => {
+          const fieldsInSection = Object.entries(fieldConfigs).filter(([_, config]) => config.section === section);
+          if (fieldsInSection.length === 0) return null;
+          return (
+            <Card key={section}>
+              <CardHeader>
+                <CardTitle className="text-lg">{section}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {fieldsInSection.map(([fieldName, config]) => (
+                    <div key={fieldName} className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">{config.label}</p>
+                      <FieldValue
+                        value={result.parsed[fieldName as keyof LeaseFields]}
+                        fieldName={fieldName}
+                        confidentlyExtracted={result.parsed.confidently_extracted}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {result.usage && (
+        <Card className="bg-muted/50 border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <span>Prompt tokens: {result.usage.prompt_tokens.toLocaleString()}</span>
+              <span>Completion tokens: {result.usage.completion_tokens.toLocaleString()}</span>
+              <span className="font-semibold">Cost: ${result.usage.estimated_cost.toFixed(4)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export default function LeaseParserPage() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ParseResult | null>(null);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [processing, setProcessing] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const abortRef = useRef(false);
   const { toast } = useToast();
 
   const getAuthToken = () => {
@@ -203,32 +354,47 @@ export default function LeaseParserPage() {
     return token;
   };
 
-  const handleFileSelected = (file: File) => {
-    const validTypes = ["application/pdf", "text/plain", "text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"];
-    if (!validTypes.includes(file.type)) {
-      toast({ title: "Error", description: "Invalid file type. Please use PDF, TXT, CSV, or XLSX.", variant: "destructive" });
-      return;
+  // ── File selection ────────────────────────────────────────────────────────
+
+  const handleFilesSelected = (files: File[]) => {
+    const valid = files.filter((f) => hasValidExtension(f.name));
+    const rejected = files.length - valid.length;
+
+    if (rejected > 0) {
+      toast({
+        title: "Skipped files",
+        description: `${rejected} file(s) had unsupported types and were skipped.`,
+      });
     }
-    setSelectedFile(file);
+
+    setQueue((prev) => {
+      const remaining = MAX_FILES - prev.length;
+      if (remaining <= 0) {
+        toast({ title: "Limit reached", description: `Maximum ${MAX_FILES} files allowed.` });
+        return prev;
+      }
+      const toAdd = valid.slice(0, remaining);
+      if (valid.length > remaining) {
+        toast({ title: "Limit reached", description: `Only added ${remaining} of ${valid.length} files (max ${MAX_FILES}).` });
+      }
+      return [...prev, ...toAdd.map((f) => ({ id: fileId(), file: f, status: "pending" as FileStatus }))];
+    });
   };
 
-  const handleParse = async () => {
-    if (!selectedFile) {
-      toast({ title: "Error", description: "Please select a file first.", variant: "destructive" });
-      return;
-    }
+  const handleRemoveFile = (id: string) => {
+    setQueue((prev) => prev.filter((q) => q.id !== id));
+  };
 
-    setLoading(true);
+  // ── Parsing ───────────────────────────────────────────────────────────────
+
+  const parseOneFile = async (item: QueueItem, token: string): Promise<QueueItem> => {
+    const formData = new FormData();
+    formData.append("file", item.file);
+
     try {
-      const token = getAuthToken();
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const response = await fetch("https://analyst-ra00.onrender.com/api/parse-lease", {
+      const response = await fetch(API_URL, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
@@ -237,180 +403,258 @@ export default function LeaseParserPage() {
         throw new Error(errBody?.error || `API error: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setResult(data);
-      toast({ title: "Success", description: "Lease parsed successfully." });
+      const data: ParseResult = await response.json();
+      return { ...item, status: "done", result: data };
     } catch (err) {
-      console.error("Parse error:", err);
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to parse lease.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      return { ...item, status: "error", error: err instanceof Error ? err.message : "Unknown error" };
     }
   };
 
-  const handleDownloadJSON = () => {
-    if (!result) return;
-    const json = JSON.stringify(result.parsed, null, 2);
+  const handleParseAll = async () => {
+    const pending = queue.filter((q) => q.status === "pending");
+    if (pending.length === 0) return;
+
+    setProcessing(true);
+    abortRef.current = false;
+
+    let token: string;
+    try {
+      token = getAuthToken();
+    } catch {
+      setProcessing(false);
+      return;
+    }
+
+    for (const item of pending) {
+      if (abortRef.current) break;
+
+      // Mark as parsing
+      setQueue((prev) => prev.map((q) => (q.id === item.id ? { ...q, status: "parsing" as FileStatus } : q)));
+
+      const result = await parseOneFile(item, token);
+
+      // Update with result
+      setQueue((prev) => prev.map((q) => (q.id === item.id ? result : q)));
+    }
+
+    setProcessing(false);
+
+    const finalQueue = queue; // stale, but toast is just informational
+    const doneCount = pending.length;
+    toast({ title: "Batch complete", description: `Processed ${doneCount} file(s).` });
+  };
+
+  const handleStop = () => {
+    abortRef.current = true;
+  };
+
+  // ── Downloads ─────────────────────────────────────────────────────────────
+
+  const handleDownloadAll = () => {
+    const results = queue
+      .filter((q) => q.status === "done" && q.result)
+      .map((q) => ({
+        filename: q.file.name,
+        ...q.result!.parsed,
+      }));
+
+    const json = JSON.stringify(results, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `lease-parse-${Date.now()}.json`;
+    a.download = `lease-batch-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleReset = () => {
-    setSelectedFile(null);
-    setResult(null);
+  const handleDownloadSingle = (item: QueueItem) => {
+    if (!item.result) return;
+    const json = JSON.stringify(item.result.parsed, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${item.file.name.replace(/\.[^.]+$/, "")}-parsed.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  if (result) {
+  // ── Reset ─────────────────────────────────────────────────────────────────
+
+  const handleReset = () => {
+    setQueue([]);
+    setViewingId(null);
+    setProcessing(false);
+    abortRef.current = false;
+  };
+
+  // ── Derived state ─────────────────────────────────────────────────────────
+
+  const pendingCount = queue.filter((q) => q.status === "pending").length;
+  const doneCount = queue.filter((q) => q.status === "done").length;
+  const errorCount = queue.filter((q) => q.status === "error").length;
+  const hasResults = doneCount > 0 || errorCount > 0;
+  const allDone = queue.length > 0 && pendingCount === 0 && !processing;
+
+  // ── Detail view ───────────────────────────────────────────────────────────
+
+  const viewingItem = viewingId ? queue.find((q) => q.id === viewingId) : null;
+
+  if (viewingItem?.status === "done" && viewingItem.result) {
     return (
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parse Results</h1>
-          <div className="flex items-center gap-4">
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground">
-                File: <span className="font-mono font-semibold text-foreground">{selectedFile.name}</span>
-              </p>
-            )}
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              Parse Another File
-            </Button>
-          </div>
         </div>
+        <SingleResult item={viewingItem} onBack={() => setViewingId(null)} />
 
-        {/* Results by section */}
-        <div className="grid gap-6 mb-8">
-          {sections.map((section) => {
-            const fieldsInSection = Object.entries(fieldConfigs).filter(([_, config]) => config.section === section);
-            if (fieldsInSection.length === 0) return null;
-
-            return (
-              <Card key={section}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{section}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {fieldsInSection.map(([fieldName, config]) => (
-                      <div key={fieldName} className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">{config.label}</p>
-                        <FieldValue
-                          value={result.parsed[fieldName as keyof LeaseFields]}
-                          fieldName={fieldName}
-                          confidentlyExtracted={result.parsed.confidently_extracted}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* Token usage */}
-        {result.usage && (
-          <Card className="bg-muted/50 border-border/50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <span>Prompt tokens: {result.usage.prompt_tokens.toLocaleString()}</span>
-                <span>Completion tokens: {result.usage.completion_tokens.toLocaleString()}</span>
-                <span className="font-semibold">Cost: ${result.usage.estimated_cost.toFixed(4)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Action buttons */}
         <div className="flex gap-3 mt-8">
-          <Button onClick={handleDownloadJSON} className="gap-2">
+          <Button onClick={() => handleDownloadSingle(viewingItem)} className="gap-2">
             <Download className="h-4 w-4" /> Download JSON
           </Button>
-          <Button variant="outline" onClick={handleReset}>
-            Parse Another
+          <Button variant="outline" onClick={() => setViewingId(null)}>
+            Back to All Results
           </Button>
         </div>
       </main>
     );
   }
 
+  // ── Results summary view ──────────────────────────────────────────────────
+
+  if (allDone) {
+    const totalCost = queue
+      .filter((q) => q.result?.usage)
+      .reduce((sum, q) => sum + (q.result!.usage.estimated_cost || 0), 0);
+
+    return (
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Batch Results</h1>
+          <p className="text-sm text-muted-foreground">
+            {doneCount} parsed successfully{errorCount > 0 ? `, ${errorCount} failed` : ""} — Total cost: ${totalCost.toFixed(4)}
+          </p>
+        </div>
+
+        <div className="space-y-3 mb-8">
+          {queue.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                item.status === "done"
+                  ? "border-border bg-card hover:bg-muted/50 cursor-pointer"
+                  : "border-destructive/30 bg-destructive/5"
+              }`}
+              onClick={() => item.status === "done" && setViewingId(item.id)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{item.file.name}</p>
+                  {item.status === "done" && item.result?.parsed.tenant_name && (
+                    <p className="text-xs text-muted-foreground">
+                      {item.result.parsed.tenant_name}
+                      {item.result.parsed.property_address ? ` — ${item.result.parsed.property_address}` : ""}
+                    </p>
+                  )}
+                  {item.status === "error" && (
+                    <p className="text-xs text-destructive">{item.error}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                {item.status === "done" && (
+                  <>
+                    <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+                    </Badge>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </>
+                )}
+                {item.status === "error" && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertCircle className="h-3 w-3 mr-1" /> Error
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          {doneCount > 0 && (
+            <Button onClick={handleDownloadAll} className="gap-2">
+              <Download className="h-4 w-4" /> Download All ({doneCount}) as JSON
+            </Button>
+          )}
+          <Button variant="outline" onClick={handleReset}>
+            Start New Batch
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Upload / queue view ───────────────────────────────────────────────────
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
         <p className="text-base text-muted-foreground">
-          Upload a lease document and we'll extract key terms, tenant info, rent structure, and more.
+          Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
         </p>
       </div>
 
       <Card className="border border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileUp className="h-5 w-5" /> Upload Lease Document
+            <FileUp className="h-5 w-5" /> Upload Lease Documents
           </CardTitle>
-          <CardDescription>Supports PDF, TXT, CSV, and XLSX files</CardDescription>
+          <CardDescription>
+            {queue.length === 0
+              ? `Supports PDF, TXT, CSV, and XLSX — up to ${MAX_FILES} files`
+              : `${queue.length} file(s) queued — ${MAX_FILES - queue.length} slots remaining`}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {selectedFile ? (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-foreground">{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedFile.size / 1024).toFixed(2)} KB
-                  </p>
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  Ready
-                </Badge>
-              </div>
-            </div>
-          ) : (
-            <DropZone onFileSelected={handleFileSelected} loading={loading} />
+          {/* Dropzone (always visible unless processing) */}
+          {queue.length < MAX_FILES && (
+            <DropZone onFilesSelected={handleFilesSelected} disabled={processing} />
           )}
 
-          {selectedFile && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedFile(null)}
-              disabled={loading}
-              className="w-full"
-            >
-              Choose Different File
-            </Button>
+          {/* File queue */}
+          {queue.length > 0 && (
+            <QueueList queue={queue} onRemove={handleRemoveFile} disabled={processing} />
           )}
 
-          <Button
-            onClick={handleParse}
-            disabled={!selectedFile || loading}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Parsing lease...
-              </>
-            ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" /> Parse Lease
-              </>
-            )}
-          </Button>
+          {/* Progress bar during processing */}
+          {processing && <ProgressBar queue={queue} />}
 
-          {loading && (
-            <div className="rounded-lg border border-border bg-muted/50 p-4">
-              <p className="text-sm text-muted-foreground text-center">
-                This may take 5-15 seconds. Please wait...
-              </p>
+          {/* Action buttons */}
+          {queue.length > 0 && (
+            <div className="flex gap-3">
+              {!processing ? (
+                <>
+                  <Button
+                    onClick={handleParseAll}
+                    disabled={pendingCount === 0}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Parse {pendingCount} {pendingCount === 1 ? "File" : "Files"}
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={handleReset}>
+                    Clear All
+                  </Button>
+                </>
+              ) : (
+                <Button variant="destructive" size="lg" className="flex-1" onClick={handleStop}>
+                  Stop Processing
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
@@ -421,7 +665,10 @@ export default function LeaseParserPage() {
           <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
           <div>
             <p className="font-semibold text-foreground mb-1">What gets extracted?</p>
-            <p>The parser extracts 24 key fields including tenant info, property details, lease terms, rent structure, expense allocation, renewal/termination options, and extraction confidence scores.</p>
+            <p>
+              Each lease is parsed for 24 key fields including tenant info, property details, lease terms,
+              rent structure, expense allocation, renewal/termination options, and extraction confidence scores.
+            </p>
           </div>
         </div>
       </div>
