@@ -1305,35 +1305,36 @@ export default function LeaseParserPage() {
     );
   }
 
+  // Load groups and leases when Saved tab is active
+  useEffect(() => {
+    if (tab !== "saved") return;
+    const initSavedTab = async () => {
+      await loadSavedLeases();
+      await loadGroups();
+      await loadDeals();
+    };
+    initSavedTab();
+  }, [tab]);
+
+  // Filter leases based on selected group (computed every render, cheap)
+  const filteredLeases =
+    selectedGroupId === null
+      ? savedLeases
+      : savedLeases.filter((lease) => {
+          const groupMemberIds = groupMembers.get(selectedGroupId);
+          return groupMemberIds?.includes(lease.id);
+        });
+
+  // Group member counts
+  const groupMembersCount = new Map<string, number>();
+  groupMembersCount.set("all", savedLeases.length);
+  groups.forEach((group) => {
+    const count = groupMembers.get(group.id)?.length || 0;
+    groupMembersCount.set(group.id, count);
+  });
+
   // Saved Leases tab
   if (tab === "saved") {
-    // Load groups and leases on mount when tab is active
-    useEffect(() => {
-      const initSavedTab = async () => {
-        await loadSavedLeases();
-        await loadGroups();
-        await loadDeals();
-      };
-      initSavedTab();
-    }, []);
-
-    // Filter leases based on selected group
-    const filteredLeases =
-      selectedGroupId === null
-        ? savedLeases
-        : savedLeases.filter((lease) => {
-            const groupMemberIds = groupMembers.get(selectedGroupId);
-            return groupMemberIds?.includes(lease.id);
-          });
-
-    // Group member counts
-    const groupMembersCount = new Map<string, number>();
-    groupMembersCount.set("all", savedLeases.length);
-    groups.forEach((group) => {
-      const count = groupMembers.get(group.id)?.length || 0;
-      groupMembersCount.set(group.id, count);
-    });
-
     return (
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
