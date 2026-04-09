@@ -92,7 +92,9 @@ interface LeaseGroup {
 
 interface Deal {
   id: string;
-  name: string;
+  search_id: string;
+  address: string | null;
+  short_address: string | null;
   [key: string]: unknown;
 }
 
@@ -603,7 +605,7 @@ function GroupMenu({
           <option value="">None</option>
           {deals.map((deal) => (
             <option key={deal.id} value={deal.id}>
-              {deal.name}
+              {deal.short_address || deal.address || deal.search_id}
             </option>
           ))}
         </select>
@@ -949,12 +951,31 @@ export default function LeaseParserPage() {
   };
 
   const handleDeleteLease = async (id: string) => {
-    const success = await supabaseDeleteLeaseExtraction(id);
+    const lease = savedLeases.find((l) => l.id === id);
+    const storagePath = (lease?.storage_path as string) || null;
+    const success = await supabaseDeleteLeaseExtraction(id, storagePath);
     if (success) {
       setSavedLeases((prev) => prev.filter((l) => l.id !== id));
+      // Also clear from any group membership caches
+      setGroupMembers((prev) => {
+        const updated = new Map(prev);
+        for (const [key, memberIds] of updated.entries()) {
+          if (Array.isArray(memberIds)) {
+            updated.set(key, memberIds.filter((mid) => mid !== id));
+          }
+        }
+        return updated;
+      });
+      setSelectedLeaseIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      // If we were viewing this lease's detail, go back
+      if (viewingSavedId === id) setViewingSavedId(null);
       toast({
-        title: "Deleted",
-        description: "Lease extraction removed from library",
+        title: "Permanently deleted",
+        description: "Lease, original file, and group memberships removed",
       });
     } else {
       toast({
@@ -1091,11 +1112,8 @@ export default function LeaseParserPage() {
   };
 
   const handleRenameGroup = async (groupId: string, newName: string) => {
-    const apiKey = getApiKey();
-    if (!apiKey) return;
-
     try {
-      const updated = await supabaseUpdateLeaseGroup(apiKey, groupId, { name: newName });
+      const updated = await supabaseUpdateLeaseGroup(groupId, { name: newName });
       if (updated) {
         setGroups((prev) =>
           prev.map((g) => (g.id === groupId ? { ...g, name: newName } : g))
@@ -1113,11 +1131,8 @@ export default function LeaseParserPage() {
   };
 
   const handleAssignDeal = async (groupId: string, dealId: string | null) => {
-    const apiKey = getApiKey();
-    if (!apiKey) return;
-
     try {
-      const updated = await supabaseUpdateLeaseGroup(apiKey, groupId, { deal_id: dealId });
+      const updated = await supabaseUpdateLeaseGroup(groupId, { deal_id: dealId });
       if (updated) {
         setGroups((prev) =>
           prev.map((g) => (g.id === groupId ? { ...g, deal_id: dealId } : g))
@@ -1138,11 +1153,8 @@ export default function LeaseParserPage() {
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    const apiKey = getApiKey();
-    if (!apiKey) return;
-
     try {
-      const success = await supabaseDeleteLeaseGroup(apiKey, groupId);
+      const success = await supabaseDeleteLeaseGroup(groupId);
       if (success) {
         setGroups((prev) => prev.filter((g) => g.id !== groupId));
         setGroupMembers((prev) => {
@@ -1438,7 +1450,6 @@ export default function LeaseParserPage() {
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm font-medium text-foreground truncate">{lease.filename}</p>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {lease.tenant_name && `${lease.tenant_name}`}
@@ -1450,6 +1461,21 @@ export default function LeaseParserPage() {
                               {lease.base_rent_monthly && lease.created_at && " • "}
                               {lease.created_at && formatDate(lease.created_at as string)}
                             </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Permanently delete "${lease.filename}"? This removes the file, data, and all group memberships.`)) {
+                                  handleDeleteLease(lease.id);
+                                }
+                              }}
+                              className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              title="Delete permanently"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </div>
                       );

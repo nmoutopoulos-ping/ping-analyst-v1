@@ -764,12 +764,37 @@ export async function supabaseGetLeaseExtractions(apiKey: string): Promise<Recor
 }
 
 /**
- * Delete a lease extraction record by ID.
+ * Permanently delete a lease extraction — removes storage file, group memberships, and the DB row.
  * Returns true on success, false on failure.
  */
-export async function supabaseDeleteLeaseExtraction(id: string): Promise<boolean> {
+export async function supabaseDeleteLeaseExtraction(id: string, storagePath?: string | null): Promise<boolean> {
   await _ensureValidToken();
 
+  // 1. Delete the original file from storage (if it exists)
+  if (storagePath) {
+    const storageRes = await fetch(
+      `${SB_URL}/storage/v1/object/lease-files/${storagePath}`,
+      {
+        method: "DELETE",
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${_accessToken}` },
+      }
+    );
+    if (!storageRes.ok) {
+      console.error("Lease file storage delete failed:", await storageRes.text());
+      // Continue — still delete DB records even if storage cleanup fails
+    }
+  }
+
+  // 2. Remove from all lease groups (delete junction rows)
+  const memberRes = await fetch(
+    `${SB_URL}/rest/v1/lease_group_members?lease_extraction_id=eq.${encodeURIComponent(id)}`,
+    { method: "DELETE", headers: _headers() }
+  );
+  if (!memberRes.ok) {
+    console.error("Delete group memberships failed:", await memberRes.text());
+  }
+
+  // 3. Delete the extraction row itself
   const res = await fetch(
     `${SB_URL}/rest/v1/lease_extractions?id=eq.${encodeURIComponent(id)}`,
     {
