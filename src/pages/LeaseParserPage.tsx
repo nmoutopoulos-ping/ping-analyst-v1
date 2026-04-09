@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Download, FileUp, Upload, Loader2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, FileText, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Download, FileUp, Upload, Loader2, CheckCircle2, AlertCircle, X, ChevronLeft, ChevronRight, FileText, Trash2, Plus, MoreVertical, Edit2, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,14 @@ import {
   supabaseGetLeaseExtractions,
   supabaseDeleteLeaseExtraction,
   supabaseCreateLeaseSignedUrl,
+  supabaseGetLeaseGroups,
+  supabaseCreateLeaseGroup,
+  supabaseUpdateLeaseGroup,
+  supabaseDeleteLeaseGroup,
+  supabaseGetLeaseGroupMembers,
+  supabaseAddLeaseToGroup,
+  supabaseRemoveLeaseFromGroup,
+  supabaseGetDealsForGroupAssign,
 } from "@/lib/supabase";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -71,6 +79,20 @@ interface SavedLease {
   property_address: string | null;
   base_rent_monthly: number | null;
   created_at: string;
+  [key: string]: unknown;
+}
+
+interface LeaseGroup {
+  id: string;
+  name: string;
+  deal_id: string | null;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface Deal {
+  id: string;
+  name: string;
   [key: string]: unknown;
 }
 
@@ -318,6 +340,323 @@ function ProgressBar({ queue }: { queue: QueueItem[] }) {
   );
 }
 
+// ── Group Management Sub-components ────────────────────────────────────────
+
+function GroupsPanel({
+  groups,
+  selectedGroupId,
+  onSelectGroup,
+  onCreateGroup,
+  onRenameGroup,
+  onAssignDeal,
+  onDeleteGroup,
+  deals,
+  groupMembersCount,
+  loadingGroups,
+}: {
+  groups: LeaseGroup[];
+  selectedGroupId: string | null;
+  onSelectGroup: (groupId: string | null) => void;
+  onCreateGroup: (name: string) => Promise<void>;
+  onRenameGroup: (groupId: string, newName: string) => Promise<void>;
+  onAssignDeal: (groupId: string, dealId: string | null) => Promise<void>;
+  onDeleteGroup: (groupId: string) => Promise<void>;
+  deals: Deal[];
+  groupMembersCount: Map<string, number>;
+  loadingGroups: boolean;
+}) {
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [assigningDealId, setAssigningDealId] = useState<string | null>(null);
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) return;
+    await onCreateGroup(newGroupName);
+    setNewGroupName("");
+    setCreatingGroup(false);
+  };
+
+  const handleRenameGroup = async (groupId: string) => {
+    if (!renamingValue.trim()) return;
+    await onRenameGroup(groupId, renamingValue);
+    setRenamingId(null);
+    setRenamingValue("");
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    await onDeleteGroup(groupId);
+    setDeletingId(null);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <Button
+          onClick={() => setCreatingGroup(true)}
+          className="w-full gap-2"
+          size="sm"
+        >
+          <Plus className="h-4 w-4" /> Create Group
+        </Button>
+      </div>
+
+      {creatingGroup && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="pt-4">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Group name..."
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateGroup();
+                  if (e.key === "Escape") setCreatingGroup(false);
+                }}
+                autoFocus
+                className="flex-1 px-3 py-2 rounded border border-input bg-background text-sm"
+              />
+              <Button
+                size="sm"
+                onClick={handleCreateGroup}
+                disabled={!newGroupName.trim()}
+              >
+                Create
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setCreatingGroup(false);
+                  setNewGroupName("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {loadingGroups ? (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {/* All Leases option */}
+          <button
+            onClick={() => onSelectGroup(null)}
+            className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
+              selectedGroupId === null
+                ? "bg-primary/10 border-primary/30 text-primary font-medium"
+                : "border-transparent hover:bg-muted/50 text-foreground"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">All Leases</span>
+              <Badge variant="secondary" className="text-xs">
+                {groupMembersCount.get("all") || 0}
+              </Badge>
+            </div>
+          </button>
+
+          {/* Groups list */}
+          {groups.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-xs text-muted-foreground">No groups yet</p>
+            </div>
+          ) : (
+            groups.map((group) => (
+              <div key={group.id}>
+                {renamingId === group.id ? (
+                  <div className="flex gap-2 px-2 py-1">
+                    <input
+                      type="text"
+                      value={renamingValue}
+                      onChange={(e) => setRenamingValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRenameGroup(group.id);
+                        if (e.key === "Escape") setRenamingId(null);
+                      }}
+                      autoFocus
+                      className="flex-1 px-2 py-1 rounded border border-input bg-background text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRenameGroup(group.id)}
+                      disabled={!renamingValue.trim()}
+                    >
+                      OK
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onSelectGroup(group.id)}
+                    className={`w-full text-left px-3 py-2 rounded-lg border transition-colors group/item ${
+                      selectedGroupId === group.id
+                        ? "bg-primary/10 border-primary/30 text-primary font-medium"
+                        : "border-transparent hover:bg-muted/50 text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{group.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {groupMembersCount.get(group.id) || 0} lease{groupMembersCount.get(group.id) !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <div className="shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <GroupMenu
+                          group={group}
+                          deals={deals}
+                          onRename={() => {
+                            setRenamingId(group.id);
+                            setRenamingValue(group.name);
+                          }}
+                          onAssignDeal={onAssignDeal}
+                          onDelete={() => setDeletingId(group.id)}
+                          assigningDealId={assigningDealId}
+                          setAssigningDealId={setAssigningDealId}
+                        />
+                      </div>
+                    </div>
+                  </button>
+                )}
+
+                {/* Delete confirmation */}
+                {deletingId === group.id && (
+                  <Card className="mt-2 border-destructive/50 bg-destructive/5">
+                    <CardContent className="pt-3">
+                      <p className="text-sm text-foreground mb-3">
+                        Delete "{group.name}"? This cannot be undone.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteGroup(group.id)}
+                        >
+                          Delete
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setDeletingId(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupMenu({
+  group,
+  deals,
+  onRename,
+  onAssignDeal,
+  onDelete,
+  assigningDealId,
+  setAssigningDealId,
+}: {
+  group: LeaseGroup;
+  deals: Deal[];
+  onRename: () => void;
+  onAssignDeal: (groupId: string, dealId: string | null) => Promise<void>;
+  onDelete: () => void;
+  assigningDealId: string | null;
+  setAssigningDealId: (id: string | null) => void;
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [loadingAssign, setLoadingAssign] = useState(false);
+
+  const handleAssignDeal = async (dealId: string | null) => {
+    setLoadingAssign(true);
+    await onAssignDeal(group.id, dealId);
+    setLoadingAssign(false);
+    setAssigningDealId(null);
+    setShowMenu(false);
+  };
+
+  if (assigningDealId === group.id) {
+    return (
+      <div className="relative">
+        <select
+          autoFocus
+          className="px-2 py-1 text-sm rounded border border-input bg-background"
+          onChange={(e) => handleAssignDeal(e.target.value || null)}
+          disabled={loadingAssign}
+        >
+          <option value="">None</option>
+          {deals.map((deal) => (
+            <option key={deal.id} value={deal.id}>
+              {deal.name}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setShowMenu(!showMenu)}
+        className="p-1 hover:bg-muted rounded transition-colors"
+      >
+        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+
+      {showMenu && (
+        <div className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg z-10 min-w-48">
+          <button
+            onClick={() => {
+              onRename();
+              setShowMenu(false);
+            }}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 transition-colors"
+          >
+            <Edit2 className="h-4 w-4" /> Rename
+          </button>
+
+          <button
+            onClick={() => {
+              setAssigningDealId(group.id);
+              setShowMenu(false);
+            }}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 transition-colors"
+          >
+            <Unlink className="h-4 w-4" /> Assign to Deal
+          </button>
+
+          <button
+            onClick={() => {
+              onDelete();
+              setShowMenu(false);
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" /> Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SingleResult({
   item,
   onBack,
@@ -403,6 +742,14 @@ export default function LeaseParserPage() {
   const [viewingSavedId, setViewingSavedId] = useState<string | null>(null);
   const abortRef = useRef(false);
   const { toast } = useToast();
+
+  // Group management state
+  const [groups, setGroups] = useState<LeaseGroup[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [groupMembers, setGroupMembers] = useState<Map<string, string[]>>(new Map());
+  const [selectedLeaseIds, setSelectedLeaseIds] = useState<Set<string>>(new Set());
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
 
   const getAuthToken = () => {
     const token = localStorage.getItem("sb_access_token");
@@ -682,6 +1029,212 @@ export default function LeaseParserPage() {
     URL.revokeObjectURL(url);
   };
 
+  // ── Group management functions ─────────────────────────────────────────────
+
+  const loadGroups = async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    setLoadingGroups(true);
+    try {
+      const fetchedGroups = await supabaseGetLeaseGroups(apiKey);
+      setGroups(fetchedGroups as LeaseGroup[]);
+
+      // Load member counts for all groups
+      const memberCountMap = new Map<string, number>();
+      memberCountMap.set("all", savedLeases.length);
+
+      for (const group of fetchedGroups as LeaseGroup[]) {
+        const members = await supabaseGetLeaseGroupMembers(group.id);
+        const memberIds = members.map((m: any) => m.lease_extraction_id);
+        setGroupMembers((prev) => new Map(prev).set(group.id, memberIds));
+        memberCountMap.set(group.id, memberIds.length);
+      }
+
+      // Update the map with all counts
+      setGroupMembers((prev) => {
+        const updated = new Map(prev);
+        updated.set("all", savedLeases.length);
+        return updated;
+      });
+    } catch (err) {
+      console.error("Error loading groups:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load groups",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  const handleCreateGroup = async (name: string) => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      const newGroup = await supabaseCreateLeaseGroup(apiKey, name);
+      if (newGroup) {
+        setGroups((prev) => [...prev, newGroup as LeaseGroup]);
+        setGroupMembers((prev) => new Map(prev).set((newGroup as any).id, []));
+        toast({ title: "Success", description: `Group "${name}" created` });
+      }
+    } catch (err) {
+      console.error("Error creating group:", err);
+      toast({
+        title: "Error",
+        description: "Failed to create group",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRenameGroup = async (groupId: string, newName: string) => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      const updated = await supabaseUpdateLeaseGroup(apiKey, groupId, { name: newName });
+      if (updated) {
+        setGroups((prev) =>
+          prev.map((g) => (g.id === groupId ? { ...g, name: newName } : g))
+        );
+        toast({ title: "Success", description: "Group renamed" });
+      }
+    } catch (err) {
+      console.error("Error renaming group:", err);
+      toast({
+        title: "Error",
+        description: "Failed to rename group",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAssignDeal = async (groupId: string, dealId: string | null) => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      const updated = await supabaseUpdateLeaseGroup(apiKey, groupId, { deal_id: dealId });
+      if (updated) {
+        setGroups((prev) =>
+          prev.map((g) => (g.id === groupId ? { ...g, deal_id: dealId } : g))
+        );
+        toast({
+          title: "Success",
+          description: dealId ? "Deal assigned" : "Deal unlinked",
+        });
+      }
+    } catch (err) {
+      console.error("Error assigning deal:", err);
+      toast({
+        title: "Error",
+        description: "Failed to assign deal",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      const success = await supabaseDeleteLeaseGroup(apiKey, groupId);
+      if (success) {
+        setGroups((prev) => prev.filter((g) => g.id !== groupId));
+        setGroupMembers((prev) => {
+          const updated = new Map(prev);
+          updated.delete(groupId);
+          return updated;
+        });
+        if (selectedGroupId === groupId) {
+          setSelectedGroupId(null);
+        }
+        toast({ title: "Success", description: "Group deleted" });
+      }
+    } catch (err) {
+      console.error("Error deleting group:", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete group",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddLeaseToGroup = async (groupId: string, leaseIds: string[]) => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      for (const leaseId of leaseIds) {
+        await supabaseAddLeaseToGroup(apiKey, groupId, leaseId);
+      }
+
+      // Update local group members
+      const members = await supabaseGetLeaseGroupMembers(groupId);
+      const memberIds = members.map((m: any) => m.lease_extraction_id);
+      setGroupMembers((prev) => new Map(prev).set(groupId, memberIds));
+
+      setSelectedLeaseIds(new Set());
+      toast({
+        title: "Success",
+        description: `Added ${leaseIds.length} lease(s) to group`,
+      });
+    } catch (err) {
+      console.error("Error adding leases to group:", err);
+      toast({
+        title: "Error",
+        description: "Failed to add leases to group",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveLeaseFromGroup = async (groupId: string, leaseIds: string[]) => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      for (const leaseId of leaseIds) {
+        await supabaseRemoveLeaseFromGroup(apiKey, groupId, leaseId);
+      }
+
+      // Update local group members
+      const members = await supabaseGetLeaseGroupMembers(groupId);
+      const memberIds = members.map((m: any) => m.lease_extraction_id);
+      setGroupMembers((prev) => new Map(prev).set(groupId, memberIds));
+
+      setSelectedLeaseIds(new Set());
+      toast({
+        title: "Success",
+        description: `Removed ${leaseIds.length} lease(s) from group`,
+      });
+    } catch (err) {
+      console.error("Error removing leases from group:", err);
+      toast({
+        title: "Error",
+        description: "Failed to remove leases from group",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadDeals = async () => {
+    const apiKey = getApiKey();
+    if (!apiKey) return;
+
+    try {
+      const fetchedDeals = await supabaseGetDealsForGroupAssign(apiKey);
+      setDeals(fetchedDeals as Deal[]);
+    } catch (err) {
+      console.error("Error loading deals:", err);
+    }
+  };
+
   // ── Reset ─────────────────────────────────────────────────────────────────
 
   const handleReset = () => {
@@ -754,8 +1307,35 @@ export default function LeaseParserPage() {
 
   // Saved Leases tab
   if (tab === "saved") {
+    // Load groups and leases on mount when tab is active
+    useEffect(() => {
+      const initSavedTab = async () => {
+        await loadSavedLeases();
+        await loadGroups();
+        await loadDeals();
+      };
+      initSavedTab();
+    }, []);
+
+    // Filter leases based on selected group
+    const filteredLeases =
+      selectedGroupId === null
+        ? savedLeases
+        : savedLeases.filter((lease) => {
+            const groupMemberIds = groupMembers.get(selectedGroupId);
+            return groupMemberIds?.includes(lease.id);
+          });
+
+    // Group member counts
+    const groupMembersCount = new Map<string, number>();
+    groupMembersCount.set("all", savedLeases.length);
+    groups.forEach((group) => {
+      const count = groupMembers.get(group.id)?.length || 0;
+      groupMembersCount.set(group.id, count);
+    });
+
     return (
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
           <p className="text-base text-muted-foreground">Manage and review your saved lease extractions.</p>
@@ -770,10 +1350,6 @@ export default function LeaseParserPage() {
             Parse New
           </button>
           <button
-            onClick={() => {
-              setTab("saved");
-              loadSavedLeases();
-            }}
             className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
           >
             Saved Leases
@@ -796,32 +1372,147 @@ export default function LeaseParserPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {savedLeases.map((lease) => (
-              <div
-                key={lease.id}
-                className="flex items-center justify-between rounded-lg border border-border bg-card hover:bg-muted/50 px-4 py-3 cursor-pointer"
-                onClick={() => setViewingSavedId(lease.id)}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{lease.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {lease.tenant_name && `${lease.tenant_name}`}
-                      {lease.tenant_name && lease.property_address && " — "}
-                      {lease.property_address}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {lease.base_rent_monthly && `$${(lease.base_rent_monthly as number).toLocaleString()}/mo`}
-                      {lease.base_rent_monthly && lease.created_at && " • "}
-                      {lease.created_at && formatDate(lease.created_at as string)}
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-3" />
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+            {/* Left panel: Groups */}
+            <div className="lg:border-r border-border lg:pr-6">
+              <h3 className="text-sm font-semibold text-foreground mb-4">Groups</h3>
+              <GroupsPanel
+                groups={groups}
+                selectedGroupId={selectedGroupId}
+                onSelectGroup={setSelectedGroupId}
+                onCreateGroup={handleCreateGroup}
+                onRenameGroup={handleRenameGroup}
+                onAssignDeal={handleAssignDeal}
+                onDeleteGroup={handleDeleteGroup}
+                deals={deals}
+                groupMembersCount={groupMembersCount}
+                loadingGroups={loadingGroups}
+              />
+            </div>
+
+            {/* Right panel: Leases list */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {selectedGroupId === null ? "All Leases" : groups.find((g) => g.id === selectedGroupId)?.name || "Leases"}
+                </h3>
+                <Badge variant="secondary">{filteredLeases.length}</Badge>
               </div>
-            ))}
+
+              {filteredLeases.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No leases in this group</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2 mb-4">
+                    {filteredLeases.map((lease) => {
+                      const isSelected = selectedLeaseIds.has(lease.id);
+                      return (
+                        <div
+                          key={lease.id}
+                          className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors ${
+                            isSelected
+                              ? "bg-primary/10 border-primary/30"
+                              : "border-border bg-card hover:bg-muted/50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              const newSelected = new Set(selectedLeaseIds);
+                              if (e.target.checked) {
+                                newSelected.add(lease.id);
+                              } else {
+                                newSelected.delete(lease.id);
+                              }
+                              setSelectedLeaseIds(newSelected);
+                            }}
+                            className="shrink-0"
+                          />
+                          <div
+                            className="min-w-0 flex-1 cursor-pointer"
+                            onClick={() => setViewingSavedId(lease.id)}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium text-foreground truncate">{lease.filename}</p>
+                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {lease.tenant_name && `${lease.tenant_name}`}
+                              {lease.tenant_name && lease.property_address && " — "}
+                              {lease.property_address}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {lease.base_rent_monthly && `$${(lease.base_rent_monthly as number).toLocaleString()}/mo`}
+                              {lease.base_rent_monthly && lease.created_at && " • "}
+                              {lease.created_at && formatDate(lease.created_at as string)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Floating action bar for multi-select */}
+                  {selectedLeaseIds.size > 0 && (
+                    <Card className="fixed bottom-6 right-6 left-6 lg:left-auto lg:w-80 border-primary/50 shadow-lg">
+                      <CardContent className="pt-4">
+                        <p className="text-sm font-medium text-foreground mb-3">
+                          {selectedLeaseIds.size} lease{selectedLeaseIds.size !== 1 ? "s" : ""} selected
+                        </p>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <select
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  handleAddLeaseToGroup(e.target.value, Array.from(selectedLeaseIds));
+                                  e.target.value = "";
+                                }
+                              }}
+                              className="flex-1 px-3 py-2 rounded border border-input bg-background text-sm"
+                            >
+                              <option value="">Add to Group...</option>
+                              {groups.map((group) => (
+                                <option key={group.id} value={group.id}>
+                                  {group.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {selectedGroupId && selectedGroupId !== null && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                handleRemoveLeaseFromGroup(
+                                  selectedGroupId,
+                                  Array.from(selectedLeaseIds)
+                                )
+                              }
+                              className="w-full"
+                            >
+                              Remove from Group
+                            </Button>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedLeaseIds(new Set())}
+                            className="w-full"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
       </main>

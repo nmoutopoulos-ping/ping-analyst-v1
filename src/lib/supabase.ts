@@ -814,3 +814,170 @@ export async function supabaseCreateLeaseSignedUrl(storagePath: string): Promise
   const data = await res.json();
   return data.signedURL ? `${SB_URL}/storage/v1${data.signedURL}` : null;
 }
+
+/**
+ * Fetch all lease groups for a given API key.
+ * Returns array of groups ordered by created_at descending, or [].
+ */
+export async function supabaseGetLeaseGroups(apiKey: string): Promise<any[]> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_groups?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&select=*`,
+    { headers: _headers() }
+  );
+
+  if (!res.ok) {
+    console.error("Get lease groups failed:", res.status, await res.text());
+    return [];
+  }
+
+  return res.json();
+}
+
+/**
+ * Create a new lease group.
+ * Returns the created group object, or null on failure.
+ */
+export async function supabaseCreateLeaseGroup(apiKey: string, name: string, dealId?: string): Promise<any> {
+  await _ensureValidToken();
+
+  const res = await fetch(`${SB_URL}/rest/v1/lease_groups`, {
+    method: "POST",
+    headers: { ..._headers(), "Prefer": "return=representation" },
+    body: JSON.stringify({ api_key: apiKey, name, deal_id: dealId || null }),
+  });
+
+  if (!res.ok) {
+    console.error("Create lease group failed:", await res.text());
+    return null;
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) ? data[0] : data;
+}
+
+/**
+ * Update a lease group by ID.
+ * Returns true on success, false on failure.
+ */
+export async function supabaseUpdateLeaseGroup(id: string, updates: { name?: string; deal_id?: string | null }): Promise<boolean> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_groups?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { ..._headers(), "Prefer": "return=representation" },
+      body: JSON.stringify(updates),
+    }
+  );
+
+  if (!res.ok) {
+    console.error("Update lease group failed:", await res.text());
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Delete a lease group by ID.
+ * Returns true on success, false on failure.
+ */
+export async function supabaseDeleteLeaseGroup(id: string): Promise<boolean> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_groups?id=eq.${encodeURIComponent(id)}`,
+    { method: "DELETE", headers: _headers() }
+  );
+
+  if (!res.ok) {
+    console.error("Delete lease group failed:", await res.text());
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Fetch all members of a lease group with their lease extraction data.
+ * Returns array of members with full lease data, or [].
+ */
+export async function supabaseGetLeaseGroupMembers(groupId: string): Promise<any[]> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_group_members?group_id=eq.${encodeURIComponent(groupId)}&select=*,lease_extractions(*)`,
+    { headers: _headers() }
+  );
+
+  if (!res.ok) {
+    console.error("Get lease group members failed:", res.status, await res.text());
+    return [];
+  }
+
+  return res.json();
+}
+
+/**
+ * Add a lease extraction to a lease group.
+ * Returns true on success, false on failure.
+ */
+export async function supabaseAddLeaseToGroup(apiKey: string, groupId: string, leaseExtractionId: string): Promise<boolean> {
+  await _ensureValidToken();
+
+  const res = await fetch(`${SB_URL}/rest/v1/lease_group_members`, {
+    method: "POST",
+    headers: { ..._headers(), "Prefer": "return=minimal" },
+    body: JSON.stringify({ api_key: apiKey, group_id: groupId, lease_extraction_id: leaseExtractionId }),
+  });
+
+  if (!res.ok) {
+    console.error("Add lease to group failed:", await res.text());
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Remove a lease extraction from a lease group.
+ * Returns true on success, false on failure.
+ */
+export async function supabaseRemoveLeaseFromGroup(groupId: string, leaseExtractionId: string): Promise<boolean> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/lease_group_members?group_id=eq.${encodeURIComponent(groupId)}&lease_extraction_id=eq.${encodeURIComponent(leaseExtractionId)}`,
+    { method: "DELETE", headers: _headers() }
+  );
+
+  if (!res.ok) {
+    console.error("Remove lease from group failed:", await res.text());
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Fetch deals for a given API key for use in group assignment dropdown.
+ * Returns slim deal list (id, search_id, address, short_address), or [].
+ */
+export async function supabaseGetDealsForGroupAssign(apiKey: string): Promise<any[]> {
+  await _ensureValidToken();
+
+  const res = await fetch(
+    `${SB_URL}/rest/v1/deals?api_key=eq.${encodeURIComponent(apiKey)}&order=created_at.desc&select=id,search_id,address,short_address`,
+    { headers: _headers() }
+  );
+
+  if (!res.ok) {
+    console.error("Get deals for group assign failed:", res.status, await res.text());
+    return [];
+  }
+
+  return res.json();
+}
