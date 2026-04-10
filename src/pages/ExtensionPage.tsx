@@ -42,7 +42,7 @@ export default function ExtensionPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-12">
+    <div className="max-w-3xl px-6 py-8">
       <h1 className="text-2xl font-bold text-foreground">Chrome Extension</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Install the Ping Analyst Chrome extension to underwrite deals directly
