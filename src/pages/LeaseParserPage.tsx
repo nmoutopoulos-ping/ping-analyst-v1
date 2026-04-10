@@ -734,7 +734,7 @@ function SingleResult({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function LeaseParserPage() {
-  const [tab, setTab] = useState<"parse" | "saved">("parse");
+  const [tab, setTab] = useState<"parse" | "saved">("saved");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1075,7 +1075,7 @@ export default function LeaseParserPage() {
       // Update the map with all counts
       setGroupMembers((prev) => {
         const updated = new Map(prev);
-        updated.set("all", savedLeases.length);
+        updated.set("all", savedLeases.map((l) => l.id));
         return updated;
       });
     } catch (err) {
@@ -1212,7 +1212,7 @@ export default function LeaseParserPage() {
 
     try {
       for (const leaseId of leaseIds) {
-        await supabaseRemoveLeaseFromGroup(apiKey, groupId, leaseId);
+        await supabaseRemoveLeaseFromGroup(groupId, leaseId);
       }
 
       // Update local group members
@@ -1272,9 +1272,9 @@ export default function LeaseParserPage() {
   // Detail view for individual parsed result
   if (viewingItem?.status === "done" && viewingItem.result) {
     return (
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parse Results</h1>
+          <h1 className="text-2xl font-bold text-foreground">Lease Parse Results</h1>
         </div>
         <SingleResult item={viewingItem} onBack={() => setViewingId(null)} />
 
@@ -1293,9 +1293,9 @@ export default function LeaseParserPage() {
   // Detail view for saved lease
   if (viewingSaved) {
     return (
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Saved Lease Details</h1>
+          <h1 className="text-2xl font-bold text-foreground">Saved Lease Details</h1>
         </div>
         <SingleResult item={viewingSaved as any} onBack={() => setViewingSavedId(null)} isSavedLease />
 
@@ -1348,10 +1348,10 @@ export default function LeaseParserPage() {
   // Saved Leases tab
   if (tab === "saved") {
     return (
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
-          <p className="text-base text-muted-foreground">Manage and review your saved lease extractions.</p>
+          <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage and review your saved lease extractions.</p>
         </div>
 
         {/* Tab bar */}
@@ -1554,10 +1554,10 @@ export default function LeaseParserPage() {
       .reduce((sum, q) => sum + (q.result!.usage.estimated_cost || 0), 0);
 
     return (
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
-          <p className="text-base text-muted-foreground">
+          <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
           </p>
         </div>
@@ -1663,10 +1663,10 @@ export default function LeaseParserPage() {
   // ── Upload / queue view ───────────────────────────────────────────────────
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Lease Parser</h1>
-        <p className="text-base text-muted-foreground">
+    <main className="max-w-4xl px-6 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
         </p>
       </div>
