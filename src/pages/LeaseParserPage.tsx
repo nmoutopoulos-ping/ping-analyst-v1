@@ -1362,15 +1362,15 @@ export default function LeaseParserPage() {
         {/* Tab bar */}
         <div className="flex gap-0 mb-8 border-b border-border">
           <button
+            className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
+          >
+            Saved Leases
+          </button>
+          <button
             onClick={() => setTab("parse")}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Parse New
-          </button>
-          <button
-            className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
-          >
-            Saved Leases
           </button>
         </div>
 
