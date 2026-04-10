@@ -1274,6 +1274,35 @@ export default function LeaseParserPage() {
   const viewingItem = viewingId ? queue.find((q) => q.id === viewingId) : null;
   const viewingSaved = viewingSavedId ? savedLeases.find((l) => l.id === viewingSavedId) : null;
 
+  // ── Hooks must be called unconditionally — BEFORE any early returns ──────
+  // Load groups and leases when Saved tab is active
+  useEffect(() => {
+    if (tab !== "saved") return;
+    const initSavedTab = async () => {
+      await loadSavedLeases();
+      await loadGroups();
+      await loadDeals();
+    };
+    initSavedTab();
+  }, [tab]);
+
+  // Filter leases based on selected group (computed every render, cheap)
+  const filteredLeases =
+    selectedGroupId === null
+      ? savedLeases
+      : savedLeases.filter((lease) => {
+          const groupMemberIds = groupMembers.get(selectedGroupId);
+          return groupMemberIds?.includes(lease.id);
+        });
+
+  // Group member counts
+  const groupMembersCount = new Map<string, number>();
+  groupMembersCount.set("all", savedLeases.length);
+  groups.forEach((group) => {
+    const count = groupMembers.get(group.id)?.length || 0;
+    groupMembersCount.set(group.id, count);
+  });
+
   // Detail view for individual parsed result
   if (viewingItem?.status === "done" && viewingItem.result) {
     return (
@@ -1321,34 +1350,6 @@ export default function LeaseParserPage() {
       </main>
     );
   }
-
-  // Load groups and leases when Saved tab is active
-  useEffect(() => {
-    if (tab !== "saved") return;
-    const initSavedTab = async () => {
-      await loadSavedLeases();
-      await loadGroups();
-      await loadDeals();
-    };
-    initSavedTab();
-  }, [tab]);
-
-  // Filter leases based on selected group (computed every render, cheap)
-  const filteredLeases =
-    selectedGroupId === null
-      ? savedLeases
-      : savedLeases.filter((lease) => {
-          const groupMemberIds = groupMembers.get(selectedGroupId);
-          return groupMemberIds?.includes(lease.id);
-        });
-
-  // Group member counts
-  const groupMembersCount = new Map<string, number>();
-  groupMembersCount.set("all", savedLeases.length);
-  groups.forEach((group) => {
-    const count = groupMembers.get(group.id)?.length || 0;
-    groupMembersCount.set(group.id, count);
-  });
 
   // Saved Leases tab
   if (tab === "saved") {
