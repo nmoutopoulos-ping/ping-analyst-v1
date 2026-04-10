@@ -7,7 +7,6 @@ import DealsPage from "@/pages/DealsPage";
 import DealDetailPage from "@/pages/DealDetailPage";
 import AnalysisPage from "@/pages/AnalysisPage";
 import SettingsPage from "@/pages/SettingsPage";
-import ExtensionPage from "@/pages/ExtensionPage";
 import ProfilePage from "@/pages/ProfilePage";
 import CompsPage from "@/pages/CompsPage";
 import AdminPage from "@/pages/AdminPage";
@@ -40,12 +39,17 @@ const App = () => (
         <Route path="/deals/:id" element={<ProtectedRoute><DealDetailPage /></ProtectedRoute>} />
         <Route path="/analysis" element={<ProtectedRoute><AnalysisPage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/extension" element={<ProtectedRoute><ExtensionPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/comps" element={<ProtectedRoute><CompsPage /></ProtectedRoute>} />
         <Route path="/market" element={<ProtectedRoute><MarketSearchPage /></ProtectedRoute>} />
-        <Route path="/lease-parser" element={<ProtectedRoute><LeaseParserPage /></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><LeaseParserPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+
+        {/* Backward-compat redirects */}
+        <Route path="/lease-parser" element={<Navigate to="/documents" replace />} />
+        <Route path="/assumptions" element={<Navigate to="/settings?tab=templates" replace />} />
+        <Route path="/extension" element={<Navigate to="/settings?tab=extension" replace />} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
