@@ -1570,12 +1570,6 @@ export default function LeaseParserPage() {
         {/* Tab bar */}
         <div className="flex gap-0 mb-8 border-b border-border">
           <button
-            onClick={() => setTab("parse")}
-            className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
-          >
-            Parse New
-          </button>
-          <button
             onClick={() => {
               setTab("saved");
               loadSavedLeases();
@@ -1583,6 +1577,11 @@ export default function LeaseParserPage() {
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Saved Leases
+          </button>
+          <button
+            className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
+          >
+            Parse New
           </button>
         </div>
 
@@ -1679,12 +1678,6 @@ export default function LeaseParserPage() {
       {/* Tab bar */}
       <div className="flex gap-0 mb-8 border-b border-border">
         <button
-          onClick={() => setTab("parse")}
-          className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
-        >
-          Parse New
-        </button>
-        <button
           onClick={() => {
             setTab("saved");
             loadSavedLeases();
@@ -1692,6 +1685,11 @@ export default function LeaseParserPage() {
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           Saved Leases
+        </button>
+        <button
+          className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
+        >
+          Parse New
         </button>
       </div>
 
