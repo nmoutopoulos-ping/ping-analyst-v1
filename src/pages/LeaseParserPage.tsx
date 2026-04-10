@@ -931,6 +931,11 @@ export default function LeaseParserPage() {
     }
   };
 
+  // Load saved leases on mount since default tab is "saved"
+  useEffect(() => {
+    loadSavedLeases();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Saved leases functionality ────────────────────────────────────────────
 
   const loadSavedLeases = async () => {
