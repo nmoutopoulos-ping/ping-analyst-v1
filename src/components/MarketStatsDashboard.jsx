@@ -38,7 +38,7 @@ import {
 // âââ CONFIG ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // API key lives server-side on Render (RENTCAST_API_KEY env var).
 // All requests go through the backend proxy to avoid CORS.
-const BACKEND_URL = "https://analyst-ra00.onrender.com";
+const BACKEND_URL = "https://analyst-docker.onrender.com";
 const USE_MOCK_DATA = false;
 // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
