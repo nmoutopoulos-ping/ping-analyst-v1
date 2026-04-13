@@ -108,7 +108,7 @@ interface FieldConfig {
 
 const MAX_FILES = 20;
 const VALID_EXTENSIONS = [".pdf", ".txt", ".csv", ".xlsx"];
-const API_URL = "https://analyst-ra00.onrender.com/api/parse-lease";
+const API_URL = "https://analyst-docker.onrender.com/api/parse-lease";
 
 const fieldConfigs: Record<string, FieldConfig> = {
   tenant_name: { label: "Tenant Name", section: "Tenant Info" },
