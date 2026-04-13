@@ -208,9 +208,22 @@ export default function DealDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handleStageChange = async (newStage: string) => {
+    if (!deal) return;
+    setSaving(true);
+    try {
+      await supabaseUpdateDealStage(deal.search_id, newStage);
+      setDeal({ ...deal, stage: newStage });
+      toast({ title: "Stage updated", description: `Deal moved to ${newStage}.` });
+    } catch {
+      toast({ title: "Error", description: "Failed to update stage.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading...</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
-
   const r: any = selectedVersion?.results ?? deal.results;
   const c = deal.comp_summary;
 
