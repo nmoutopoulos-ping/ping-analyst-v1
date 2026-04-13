@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown } from "lucide-react";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,12 +16,20 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Deal } from "@/lib/types";
+import { fmtPct, fmtMoney, fmtRatio } from "@/lib/formatters";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 
+const API_BASE = import.meta.env.VITE_API_URL || "https://analyst-docker.onrender.com";
 
-function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num") {
+function fmt(val: number | string | undefined | null, type: "pct" | "mult" | "usd" | "num") {
   if (val == null) return "--";
+  if (typeof val === "string") return val;
   if (type === "pct") return (val * 100).toFixed(1) + "%";
   if (type === "mult") return val.toFixed(1) + "x";
   if (type === "usd") return "$" + val.toLocaleString();
@@ -29,9 +38,78 @@ function fmt(val: number | undefined | null, type: "pct" | "mult" | "usd" | "num
 
 const STAGES = ["New", "Review", "Offer", "Contract", "Closed", "Pass"];
 
+interface VersionResults {
+  levered_irr: number | string | null;
+  moic: number | string | null;
+  avg_coc: number | string | null;
+  noi_stabilized: number | null;
+  cfbt_year1: number | null;
+  dscr: number | string | null;
+  coc_year1: number | string | null;
+  cap_rate_going_in: number | string | null;
+  acquisition_price: number | null;
+  loan_amount: number | null;
+  equity_required: number | null;
+  ltv: number | null;
+  interest_rate: number | null;
+  exit_cap_rate: number | null;
+}
+
+interface DealVersion {
+  id: string;
+  deal_id: string;
+  parent_version_id: string | null;
+  label: string;
+  version_number: number;
+  workbook_path: string;
+  assumption_overrides: Record<string, unknown>;
+  results: VersionResults;
+  status: string;
+  created_at: string;
+}
+
+async function fetchVersions(searchId: string): Promise<DealVersion[]> {
+  const key = getApiKey();
+  const res = await fetch(`${API_BASE}/deals/${searchId}/versions`, {
+    headers: { "X-Api-Key": key || "" },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch versions: ${res.status}`);
+  const data = await res.json();
+  return data.versions ?? [];
+}
+
+async function postRerun(
+  searchId: string,
+  body: { label: string; parent_version_id: string | null; overrides: Record<string, number> }
+): Promise<DealVersion> {
+  const key = getApiKey();
+  const res = await fetch(`${API_BASE}/deals/${searchId}/rerun`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Api-Key": key || "" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Rerun failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
 export default function DealDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [deal, setDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -40,6 +118,85 @@ export default function DealDetailPage() {
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const { toast } = useToast();
+
+  // Versions
+  const { data: versions = [] } = useQuery({
+    queryKey: ["deal-versions", id],
+    queryFn: () => fetchVersions(id!),
+    enabled: !!id,
+  });
+
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+
+  // Auto-select base version when versions load
+  useEffect(() => {
+    if (versions.length > 0 && !selectedVersionId) {
+      const base = versions.find((v) => v.version_number === 0);
+      setSelectedVersionId(base?.id ?? versions[0].id);
+    }
+  }, [versions, selectedVersionId]);
+
+  const selectedVersion = versions.find((v) => v.id === selectedVersionId) ?? null;
+
+  // Rerun form state
+  const [parentVersionId, setParentVersionId] = useState<string | null>(null);
+  const [rerunLabel, setRerunLabel] = useState("");
+  const [rerunAcquisitionPrice, setRerunAcquisitionPrice] = useState<string>("");
+  const [rerunLtv, setRerunLtv] = useState<string>("");
+  const [rerunInterestRate, setRerunInterestRate] = useState<string>("");
+  const [rerunExitCapRate, setRerunExitCapRate] = useState<string>("");
+  const [rerunning, setRerunning] = useState(false);
+
+  const parentVersion = versions.find((v) => v.id === parentVersionId) ?? versions.find((v) => v.version_number === 0) ?? null;
+
+  // Pre-fill from parent version when it changes
+  useEffect(() => {
+    if (parentVersion?.results) {
+      const r = parentVersion.results;
+      setRerunAcquisitionPrice(r.acquisition_price != null ? String(r.acquisition_price) : "");
+      setRerunLtv(r.ltv != null ? String(+(r.ltv * 100).toFixed(2)) : "");
+      setRerunInterestRate(r.interest_rate != null ? String(+(r.interest_rate * 100).toFixed(2)) : "");
+      setRerunExitCapRate(r.exit_cap_rate != null ? String(+(r.exit_cap_rate * 100).toFixed(2)) : "");
+    }
+  }, [parentVersion?.id]);
+
+  const handleRerun = async () => {
+    if (!id || !rerunLabel.trim()) {
+      toast({ title: "Label required", description: "Enter a name for this version.", variant: "destructive" });
+      return;
+    }
+    setRerunning(true);
+    try {
+      const overrides: Record<string, number> = {};
+      const pResults = parentVersion?.results;
+
+      const acqVal = parseFloat(rerunAcquisitionPrice);
+      if (!isNaN(acqVal) && pResults && acqVal !== pResults.acquisition_price) overrides.acquisition_price = acqVal;
+
+      const ltvVal = parseFloat(rerunLtv) / 100;
+      if (!isNaN(ltvVal) && pResults && Math.abs(ltvVal - (pResults.ltv ?? 0)) > 0.0001) overrides.ltv = ltvVal;
+
+      const irVal = parseFloat(rerunInterestRate) / 100;
+      if (!isNaN(irVal) && pResults && Math.abs(irVal - (pResults.interest_rate ?? 0)) > 0.0001) overrides.interest_rate = irVal;
+
+      const ecVal = parseFloat(rerunExitCapRate) / 100;
+      if (!isNaN(ecVal) && pResults && Math.abs(ecVal - (pResults.exit_cap_rate ?? 0)) > 0.0001) overrides.exit_cap_rate = ecVal;
+
+      const newVersion = await postRerun(id, {
+        label: rerunLabel.trim(),
+        parent_version_id: parentVersion?.version_number === 0 ? null : parentVersion?.id ?? null,
+        overrides,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["deal-versions", id] });
+      setSelectedVersionId(newVersion.id);
+      setRerunLabel("");
+      toast({ title: "Version created", description: `Created version: ${newVersion.label}` });
+    } catch (err: any) {
+      toast({ title: "Rerun failed", description: err.message || "Something went wrong.", variant: "destructive" });
+    } finally {
+      setRerunning(false);
+    }
+  };
 
   useEffect(() => {
     supabaseGetDeal(id!, getApiKey()!)
@@ -51,25 +208,18 @@ export default function DealDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const handleStageChange = async (newStage: string) => {
-    if (!deal) return;
-    setSaving(true);
-    try {
-      await supabaseUpdateDealStage(deal.search_id, newStage);
-      setDeal({ ...deal, stage: newStage });
-      toast({ title: "Stage updated", description: `Deal moved to ${newStage}.` });
-    } catch {
-      toast({ title: "Error", description: "Failed to update stage.", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading...</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
 
-  const r = deal.results;
+  const r = selectedVersion?.results ?? deal.results;
   const c = deal.comp_summary;
+
+  // Sorted versions: base first, then newest first
+  const sortedVersions = [...versions].sort((a, b) => {
+    if (a.version_number === 0) return -1;
+    if (b.version_number === 0) return 1;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 
   return (
     <div className="max-w-6xl px-6 py-8">
@@ -84,20 +234,216 @@ export default function DealDetailPage() {
           {new Date(deal.created_at).toLocaleString()}
         </p>
 
-        {/* Metric cards */}
-        <div className="mt-6 grid grid-cols-5 gap-4">
+        {/* Metric cards — show selected version metrics */}
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
           {[
-            { label: "Avg COC", value: fmt(r?.coc, "pct") },
-            { label: "MOIC", value: fmt(r?.moic, "mult") },
-            { label: "IRR", value: fmt(r?.irr, "pct") },
-            { label: "Cap Rate", value: fmt(r?.cap_rate, "pct") },
-            { label: "NOI", value: fmt(r?.noi, "usd") },
+            { label: "Avg COC", value: r ? fmt(r.avg_coc ?? (r as any).coc, "pct") : "--" },
+            { label: "MOIC", value: r ? fmt(r.moic, "mult") : "--" },
+            { label: "IRR", value: r ? fmt(r.levered_irr ?? (r as any).irr, "pct") : "--" },
+            { label: "Cap Rate", value: r ? fmt(r.cap_rate_going_in ?? (r as any).cap_rate, "pct") : "--" },
+            { label: "NOI", value: r ? fmt(r.noi_stabilized ?? (r as any).noi, "usd") : "--" },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <div className="label-uppercase">{item.label}</div>
               <p className="mt-1 text-2xl font-bold text-foreground">{item.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Rerun & Versions Section */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left — Rerun panel */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" /> Rerun this deal
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="rerun-label">Version Label</Label>
+                <Input
+                  id="rerun-label"
+                  placeholder="e.g. Stress test, Aggressive, Base"
+                  value={rerunLabel}
+                  onChange={(e) => setRerunLabel(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="parent-version">Parent Version</Label>
+                <select
+                  id="parent-version"
+                  value={parentVersionId ?? parentVersion?.id ?? ""}
+                  onChange={(e) => setParentVersionId(e.target.value || null)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label} (v{v.version_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="rerun-acq">Acquisition Price ($)</Label>
+                  <Input
+                    id="rerun-acq"
+                    type="number"
+                    step={50000}
+                    value={rerunAcquisitionPrice}
+                    onChange={(e) => setRerunAcquisitionPrice(e.target.value)}
+                  />
+                  {parentVersion?.results?.acquisition_price != null &&
+                    parseFloat(rerunAcquisitionPrice) !== parentVersion.results.acquisition_price && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Base: {fmtMoney(parentVersion.results.acquisition_price)}
+                      </p>
+                    )}
+                </div>
+                <div>
+                  <Label htmlFor="rerun-ltv">LTV (%)</Label>
+                  <Input
+                    id="rerun-ltv"
+                    type="number"
+                    step={1}
+                    min={0}
+                    max={95}
+                    value={rerunLtv}
+                    onChange={(e) => setRerunLtv(e.target.value)}
+                  />
+                  {parentVersion?.results?.ltv != null &&
+                    Math.abs(parseFloat(rerunLtv) - parentVersion.results.ltv * 100) > 0.01 && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Base: {fmtPct(parentVersion.results.ltv)}
+                      </p>
+                    )}
+                </div>
+                <div>
+                  <Label htmlFor="rerun-ir">Interest Rate (%)</Label>
+                  <Input
+                    id="rerun-ir"
+                    type="number"
+                    step={0.05}
+                    min={0}
+                    max={15}
+                    value={rerunInterestRate}
+                    onChange={(e) => setRerunInterestRate(e.target.value)}
+                  />
+                  {parentVersion?.results?.interest_rate != null &&
+                    Math.abs(parseFloat(rerunInterestRate) - (parentVersion.results.interest_rate as number) * 100) > 0.01 && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Base: {fmtPct(parentVersion.results.interest_rate)}
+                      </p>
+                    )}
+                </div>
+                <div>
+                  <Label htmlFor="rerun-ec">Exit Cap Rate (%)</Label>
+                  <Input
+                    id="rerun-ec"
+                    type="number"
+                    step={0.05}
+                    min={0}
+                    max={15}
+                    value={rerunExitCapRate}
+                    onChange={(e) => setRerunExitCapRate(e.target.value)}
+                  />
+                  {parentVersion?.results?.exit_cap_rate != null &&
+                    Math.abs(parseFloat(rerunExitCapRate) - (parentVersion.results.exit_cap_rate as number) * 100) > 0.01 && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Base: {fmtPct(parentVersion.results.exit_cap_rate)}
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              <Button onClick={handleRerun} disabled={rerunning} className="w-full">
+                {rerunning ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Recalculating workbook…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Rerun
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Right — Versions list */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Versions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sortedVersions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No versions yet. Run your first rerun!</p>
+              ) : (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {sortedVersions.map((v) => {
+                    const isSelected = v.id === selectedVersionId;
+                    const vr = v.results;
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => setSelectedVersionId(v.id)}
+                        className={`w-full text-left rounded-lg border p-3 transition-colors ${
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm text-foreground">{v.label}</span>
+                            {v.version_number === 0 && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Base</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={`${API_BASE}/deals/${id}/versions/${v.id}/download`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1 rounded hover:bg-muted transition-colors"
+                              title="Download .xlsx"
+                            >
+                              <FileDown className="h-3.5 w-3.5 text-muted-foreground" />
+                            </a>
+                            {v.version_number !== 0 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setParentVersionId(v.id);
+                                }}
+                                className="p-1 rounded hover:bg-muted transition-colors"
+                                title="Use as parent"
+                              >
+                                <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mb-1.5">{timeAgo(v.created_at)}</p>
+                        {vr && (
+                          <div className="flex gap-3 text-[11px] text-muted-foreground">
+                            <span>IRR {fmt(vr.levered_irr, "pct")}</span>
+                            <span>MOIC {fmt(vr.moic, "mult")}</span>
+                            <span>DSCR {fmtRatio(vr.dscr as number)}</span>
+                            <span>CoC {fmt(vr.coc_year1, "pct")}</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Two-column layout */}
@@ -200,15 +546,24 @@ export default function DealDetailPage() {
             {/* Financial Results */}
             {r && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <h3 className="mb-4 text-sm font-semibold text-foreground">Financial Results</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-foreground">Financial Results</h3>
+                  {selectedVersion && (
+                    <Badge variant="outline" className="text-xs">
+                      {selectedVersion.label} (v{selectedVersion.version_number})
+                    </Badge>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   {[
-                    ["Cap Rate", fmt(r.cap_rate, "pct")],
-                    ["NOI", fmt(r.noi, "usd")],
-                    ["Monthly Cash Flow", fmt(r.monthly_cash_flow, "usd")],
+                    ["Cap Rate", fmt(r.cap_rate_going_in ?? (r as any).cap_rate, "pct")],
+                    ["NOI", fmt(r.noi_stabilized ?? (r as any).noi, "usd")],
+                    ["Levered IRR", fmt(r.levered_irr ?? (r as any).irr, "pct")],
+                    ["MOIC", fmt(r.moic, "mult")],
                     ["Loan Amount", fmt(r.loan_amount, "usd")],
-                    ["Down Payment", fmt(r.down_payment, "usd")],
-                    ["DSCR", r.dscr?.toFixed(2) ?? "--"],
+                    ["DSCR", r.dscr != null ? (typeof r.dscr === "string" ? r.dscr : (r.dscr as number).toFixed(2)) : "--"],
+                    ["Equity Required", fmt(r.equity_required ?? (r as any).down_payment, "usd")],
+                    ["CoC Year 1", fmt(r.coc_year1, "pct")],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
                       <span className="label-uppercase">{label}</span>
@@ -219,7 +574,7 @@ export default function DealDetailPage() {
               </section>
             )}
 
-                      {/* Deal Photos */}
+            {/* Deal Photos */}
               <section className="rounded-xl border border-border bg-card p-6">
                 <DealPhotoGallery dealId={id!} apiKey={getApiKey()} />
               </section>
