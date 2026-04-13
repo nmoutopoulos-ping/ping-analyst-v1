@@ -211,7 +211,7 @@ export default function DealDetailPage() {
   if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading...</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
 
-  const r = selectedVersion?.results ?? deal.results;
+  const r: any = selectedVersion?.results ?? deal.results;
   const c = deal.comp_summary;
 
   // Sorted versions: base first, then newest first
