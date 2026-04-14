@@ -182,19 +182,21 @@ export default function DealDetailPage() {
     setRerunning(true);
     try {
       const overrides: Record<string, number> = {};
-      const pResults = parentVersion?.results;
+      const pResults = preFillSource;
 
-      const acqVal = parseFloat(rerunAcquisitionPrice);
-      if (!isNaN(acqVal) && pResults && acqVal !== pResults.acquisition_price) overrides.acquisition_price = acqVal;
+      if (pResults) {
+        const acqVal = parseFloat(rerunAcquisitionPrice);
+        if (!isNaN(acqVal) && acqVal !== pResults.acquisition_price) overrides.acquisition_price = acqVal;
 
-      const ltvVal = parseFloat(rerunLtv) / 100;
-      if (!isNaN(ltvVal) && pResults && Math.abs(ltvVal - (pResults.ltv ?? 0)) > 0.0001) overrides.ltv = ltvVal;
+        const ltvVal = parseFloat(rerunLtv) / 100;
+        if (!isNaN(ltvVal) && Math.abs(ltvVal - (pResults.ltv ?? 0)) > 0.0001) overrides.ltv = ltvVal;
 
-      const irVal = parseFloat(rerunInterestRate) / 100;
-      if (!isNaN(irVal) && pResults && Math.abs(irVal - (pResults.interest_rate ?? 0)) > 0.0001) overrides.interest_rate = irVal;
+        const irVal = parseFloat(rerunInterestRate) / 100;
+        if (!isNaN(irVal) && Math.abs(irVal - (pResults.interest_rate ?? 0)) > 0.0001) overrides.interest_rate = irVal;
 
-      const ecVal = parseFloat(rerunExitCapRate) / 100;
-      if (!isNaN(ecVal) && pResults && Math.abs(ecVal - (pResults.exit_cap_rate ?? 0)) > 0.0001) overrides.exit_cap_rate = ecVal;
+        const ecVal = parseFloat(rerunExitCapRate) / 100;
+        if (!isNaN(ecVal) && Math.abs(ecVal - (pResults.exit_cap_rate ?? 0)) > 0.0001) overrides.exit_cap_rate = ecVal;
+      }
 
       const newVersion = await postRerun(id, {
         label: rerunLabel.trim(),
@@ -238,7 +240,7 @@ export default function DealDetailPage() {
 
   if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading...</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
-  const r: any = selectedVersion?.results ?? deal.results;
+  const r: any = selectedVersion?.results ?? deal.results ?? null;
   const c = deal.comp_summary;
 
   // Sorted versions: base first, then newest first
