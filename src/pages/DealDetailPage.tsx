@@ -422,7 +422,6 @@ export default function DealDetailPage() {
                   <p className="text-sm text-muted-foreground">No saved versions yet. Run the deal to create the first version.</p>
                 </div>
               ) : (
-              ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   {sortedVersions.map((v) => {
                     const isSelected = v.id === selectedVersionId;
