@@ -97,6 +97,12 @@ export interface Assumptions {
   intRate: number;
   rentGrowth1: number;
   otherIncMo: number;
+  io_period_mo?: number;
+  amort_years?: number;
+  loan_term_years?: number;
+  exit_cap_rate?: number;
+  opex_growth?: number;
+  selling_costs_pct?: number;
 }
 
 export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "Duplex", "Triplex", "Multi Family"] as const;
@@ -104,19 +110,19 @@ export const UNIT_TYPES = ["Apartment", "Condo", "Townhouse", "Single Family", "
 export type UnitType = (typeof UNIT_TYPES)[number];
 
 export interface UnitCombo {
-  bed: number;
-  bath: number;
+  beds: number;
+  baths: number;
   units: number;
-  type?: UnitType;
+  type?: string;
 }
 
-// ── Commercial Spaces ────────────────────────────────────────────────────────
+// ââ Commercial Spaces ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 // Field names match the Chrome extension + backend (main.py, excel_writer.py).
 // `type`      = space category (Retail, Office, etc.)
 // `sqft`      = total square footage of the space
 // `rentPerSF` = annual rent per square foot ($/SF/Yr)
 //
-// Backend calculates annual commercial revenue as: sqft × rentPerSF
+// Backend calculates annual commercial revenue as: sqft Ã rentPerSF
 // This is added to residential GPR for underwriting.
 //
 // Legacy CRM data may use `space_type` / `price_per_sqft` / `annual_revenue`.
