@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown } from "lucide-react";
 import { getApiKey } from "@/lib/api";
@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Deal } from "@/lib/types";
 import { fmtPct, fmtMoney, fmtRatio } from "@/lib/formatters";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
-
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 const API_BASE = import.meta.env.VITE_API_URL || "https://analyst-docker.onrender.com";
 
 function fmt(val: number | string | undefined | null, type: "pct" | "mult" | "usd" | "num") {
@@ -106,7 +106,7 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export default function DealDetailPage() {
+function DealDetailPageInner() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -120,10 +120,11 @@ export default function DealDetailPage() {
   const { toast } = useToast();
 
   // Versions
-  const { data: versions = [] } = useQuery({
+  const { data: versions = [], isLoading: versionsLoading, isError: versionsError, error: versionsErrorObj, refetch: refetchVersions } = useQuery({
     queryKey: ["deal-versions", id],
     queryFn: () => fetchVersions(id!),
     enabled: !!id,
+    retry: 1,
   });
 
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -149,16 +150,29 @@ export default function DealDetailPage() {
 
   const parentVersion = versions.find((v) => v.id === parentVersionId) ?? versions.find((v) => v.version_number === 0) ?? null;
 
-  // Pre-fill from parent version when it changes
+  // Cascade: selected version → base version → deal.results
+  const preFillSource = useMemo(() => {
+    if (parentVersion?.results) return parentVersion.results;
+    const base = versions.find((v) => v.version_number === 0) ?? versions[0];
+    if (base?.results) return base.results;
+    if (deal?.results) return deal.results as any;
+    return null;
+  }, [parentVersion, versions, deal]);
+
+  // Pre-fill from preFillSource when it changes
   useEffect(() => {
-    if (parentVersion?.results) {
-      const r = parentVersion.results;
-      setRerunAcquisitionPrice(r.acquisition_price != null ? String(r.acquisition_price) : "");
-      setRerunLtv(r.ltv != null ? String(+(r.ltv * 100).toFixed(2)) : "");
-      setRerunInterestRate(r.interest_rate != null ? String(+(r.interest_rate * 100).toFixed(2)) : "");
-      setRerunExitCapRate(r.exit_cap_rate != null ? String(+(r.exit_cap_rate * 100).toFixed(2)) : "");
+    if (preFillSource) {
+      setRerunAcquisitionPrice(preFillSource.acquisition_price != null ? String(preFillSource.acquisition_price) : "");
+      setRerunLtv(preFillSource.ltv != null ? String(+(preFillSource.ltv * 100).toFixed(2)) : "");
+      setRerunInterestRate(preFillSource.interest_rate != null ? String(+(preFillSource.interest_rate * 100).toFixed(2)) : "");
+      setRerunExitCapRate(preFillSource.exit_cap_rate != null ? String(+(preFillSource.exit_cap_rate * 100).toFixed(2)) : "");
+    } else {
+      setRerunAcquisitionPrice("");
+      setRerunLtv("");
+      setRerunInterestRate("");
+      setRerunExitCapRate("");
     }
-  }, [parentVersion?.id]);
+  }, [parentVersion?.id, preFillSource]);
 
   const handleRerun = async () => {
     if (!id || !rerunLabel.trim()) {
@@ -168,19 +182,21 @@ export default function DealDetailPage() {
     setRerunning(true);
     try {
       const overrides: Record<string, number> = {};
-      const pResults = parentVersion?.results;
+      const pResults = preFillSource;
 
-      const acqVal = parseFloat(rerunAcquisitionPrice);
-      if (!isNaN(acqVal) && pResults && acqVal !== pResults.acquisition_price) overrides.acquisition_price = acqVal;
+      if (pResults) {
+        const acqVal = parseFloat(rerunAcquisitionPrice);
+        if (!isNaN(acqVal) && acqVal !== pResults.acquisition_price) overrides.acquisition_price = acqVal;
 
-      const ltvVal = parseFloat(rerunLtv) / 100;
-      if (!isNaN(ltvVal) && pResults && Math.abs(ltvVal - (pResults.ltv ?? 0)) > 0.0001) overrides.ltv = ltvVal;
+        const ltvVal = parseFloat(rerunLtv) / 100;
+        if (!isNaN(ltvVal) && Math.abs(ltvVal - (pResults.ltv ?? 0)) > 0.0001) overrides.ltv = ltvVal;
 
-      const irVal = parseFloat(rerunInterestRate) / 100;
-      if (!isNaN(irVal) && pResults && Math.abs(irVal - (pResults.interest_rate ?? 0)) > 0.0001) overrides.interest_rate = irVal;
+        const irVal = parseFloat(rerunInterestRate) / 100;
+        if (!isNaN(irVal) && Math.abs(irVal - (pResults.interest_rate ?? 0)) > 0.0001) overrides.interest_rate = irVal;
 
-      const ecVal = parseFloat(rerunExitCapRate) / 100;
-      if (!isNaN(ecVal) && pResults && Math.abs(ecVal - (pResults.exit_cap_rate ?? 0)) > 0.0001) overrides.exit_cap_rate = ecVal;
+        const ecVal = parseFloat(rerunExitCapRate) / 100;
+        if (!isNaN(ecVal) && Math.abs(ecVal - (pResults.exit_cap_rate ?? 0)) > 0.0001) overrides.exit_cap_rate = ecVal;
+      }
 
       const newVersion = await postRerun(id, {
         label: rerunLabel.trim(),
@@ -224,7 +240,7 @@ export default function DealDetailPage() {
 
   if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading...</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
-  const r: any = selectedVersion?.results ?? deal.results;
+  const r: any = selectedVersion?.results ?? deal.results ?? null;
   const c = deal.comp_summary;
 
   // Sorted versions: base first, then newest first
@@ -309,10 +325,10 @@ export default function DealDetailPage() {
                     value={rerunAcquisitionPrice}
                     onChange={(e) => setRerunAcquisitionPrice(e.target.value)}
                   />
-                  {parentVersion?.results?.acquisition_price != null &&
-                    parseFloat(rerunAcquisitionPrice) !== parentVersion.results.acquisition_price && (
+                  {preFillSource?.acquisition_price != null &&
+                    parseFloat(rerunAcquisitionPrice) !== preFillSource.acquisition_price && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtMoney(parentVersion.results.acquisition_price)}
+                        Base: {fmtMoney(preFillSource.acquisition_price)}
                       </p>
                     )}
                 </div>
@@ -327,10 +343,10 @@ export default function DealDetailPage() {
                     value={rerunLtv}
                     onChange={(e) => setRerunLtv(e.target.value)}
                   />
-                  {parentVersion?.results?.ltv != null &&
-                    Math.abs(parseFloat(rerunLtv) - parentVersion.results.ltv * 100) > 0.01 && (
+                  {preFillSource?.ltv != null &&
+                    Math.abs(parseFloat(rerunLtv) - (preFillSource.ltv as number) * 100) > 0.01 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtPct(parentVersion.results.ltv)}
+                        Base: {fmtPct(preFillSource.ltv)}
                       </p>
                     )}
                 </div>
@@ -345,10 +361,10 @@ export default function DealDetailPage() {
                     value={rerunInterestRate}
                     onChange={(e) => setRerunInterestRate(e.target.value)}
                   />
-                  {parentVersion?.results?.interest_rate != null &&
-                    Math.abs(parseFloat(rerunInterestRate) - (parentVersion.results.interest_rate as number) * 100) > 0.01 && (
+                  {preFillSource?.interest_rate != null &&
+                    Math.abs(parseFloat(rerunInterestRate) - (preFillSource.interest_rate as number) * 100) > 0.01 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtPct(parentVersion.results.interest_rate)}
+                        Base: {fmtPct(preFillSource.interest_rate)}
                       </p>
                     )}
                 </div>
@@ -363,10 +379,10 @@ export default function DealDetailPage() {
                     value={rerunExitCapRate}
                     onChange={(e) => setRerunExitCapRate(e.target.value)}
                   />
-                  {parentVersion?.results?.exit_cap_rate != null &&
-                    Math.abs(parseFloat(rerunExitCapRate) - (parentVersion.results.exit_cap_rate as number) * 100) > 0.01 && (
+                  {preFillSource?.exit_cap_rate != null &&
+                    Math.abs(parseFloat(rerunExitCapRate) - (preFillSource.exit_cap_rate as number) * 100) > 0.01 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtPct(parentVersion.results.exit_cap_rate)}
+                        Base: {fmtPct(preFillSource.exit_cap_rate)}
                       </p>
                     )}
                 </div>
@@ -394,8 +410,17 @@ export default function DealDetailPage() {
               <CardTitle className="text-base">Versions</CardTitle>
             </CardHeader>
             <CardContent>
-              {sortedVersions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No versions yet. Run your first rerun!</p>
+              {versionsError ? (
+                <div className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Couldn't load versions. {(versionsErrorObj as Error)?.message}</p>
+                  <Button variant="outline" size="sm" onClick={() => refetchVersions()}>Retry</Button>
+                </div>
+              ) : versionsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading versions…</p>
+              ) : sortedVersions.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center">
+                  <p className="text-sm text-muted-foreground">No saved versions yet. Run the deal to create the first version.</p>
+                </div>
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   {sortedVersions.map((v) => {
@@ -446,7 +471,7 @@ export default function DealDetailPage() {
                           <div className="flex gap-3 text-[11px] text-muted-foreground">
                             <span>IRR {fmt(vr.levered_irr, "pct")}</span>
                             <span>MOIC {fmt(vr.moic, "mult")}</span>
-                            <span>DSCR {fmtRatio(vr.dscr as number)}</span>
+                            <span>DSCR {fmtRatio(vr.dscr)}</span>
                             <span>CoC {fmt(vr.coc_year1, "pct")}</span>
                           </div>
                         )}
@@ -574,7 +599,7 @@ export default function DealDetailPage() {
                     ["Levered IRR", fmt(r.levered_irr ?? (r as any).irr, "pct")],
                     ["MOIC", fmt(r.moic, "mult")],
                     ["Loan Amount", fmt(r.loan_amount, "usd")],
-                    ["DSCR", r.dscr != null ? (typeof r.dscr === "string" ? r.dscr : (r.dscr as number).toFixed(2)) : "--"],
+                    ["DSCR", fmtRatio(r?.dscr)],
                     ["Equity Required", fmt(r.equity_required ?? (r as any).down_payment, "usd")],
                     ["CoC Year 1", fmt(r.coc_year1, "pct")],
                   ].map(([label, val]) => (
@@ -734,5 +759,13 @@ export default function DealDetailPage() {
           </div>
         </div>
       </div>
+  );
+}
+
+export default function DealDetailPage() {
+  return (
+    <ErrorBoundary>
+      <DealDetailPageInner />
+    </ErrorBoundary>
   );
 }
