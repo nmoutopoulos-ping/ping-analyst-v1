@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Deal } from "@/lib/types";
 import { fmtPct, fmtMoney, fmtRatio } from "@/lib/formatters";
+import { normalizeResults } from "@/lib/normalizeResults";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 const API_BASE = import.meta.env.VITE_API_URL || "https://analyst-docker.onrender.com";
@@ -92,7 +93,11 @@ async function postRerun(
     const text = await res.text();
     throw new Error(text || `Rerun failed: ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  if (data && typeof data === "object" && "version" in data) {
+    return data.version as DealVersion;
+  }
+  return data as DealVersion;
 }
 
 function timeAgo(dateStr: string): string {
@@ -150,28 +155,39 @@ function DealDetailPageInner() {
 
   const parentVersion = versions.find((v) => v.id === parentVersionId) ?? versions.find((v) => v.version_number === 0) ?? null;
 
-  // Cascade: selected version → base version → deal.results
+  // Cascade: selected version → base version → deal.results, normalized
   const preFillSource = useMemo(() => {
-    if (parentVersion?.results) return parentVersion.results;
-    const base = versions.find((v) => v.version_number === 0) ?? versions[0];
-    if (base?.results) return base.results;
-    if (deal?.results) return deal.results as any;
-    return null;
+    const raw =
+      parentVersion?.results ??
+      versions.find((v) => v.version_number === 0)?.results ??
+      versions[0]?.results ??
+      (deal?.results as Record<string, unknown> | undefined) ??
+      null;
+    return normalizeResults(raw as Record<string, unknown> | null, deal as any);
   }, [parentVersion, versions, deal]);
 
   // Pre-fill from preFillSource when it changes
   useEffect(() => {
-    if (preFillSource) {
-      setRerunAcquisitionPrice(preFillSource.acquisition_price != null ? String(preFillSource.acquisition_price) : "");
-      setRerunLtv(preFillSource.ltv != null ? String(+(preFillSource.ltv * 100).toFixed(2)) : "");
-      setRerunInterestRate(preFillSource.interest_rate != null ? String(+(preFillSource.interest_rate * 100).toFixed(2)) : "");
-      setRerunExitCapRate(preFillSource.exit_cap_rate != null ? String(+(preFillSource.exit_cap_rate * 100).toFixed(2)) : "");
-    } else {
-      setRerunAcquisitionPrice("");
-      setRerunLtv("");
-      setRerunInterestRate("");
-      setRerunExitCapRate("");
-    }
+    setRerunAcquisitionPrice(
+      preFillSource.acquisition_price != null
+        ? String(preFillSource.acquisition_price)
+        : "",
+    );
+    setRerunLtv(
+      preFillSource.ltv != null
+        ? String(+(preFillSource.ltv * 100).toFixed(2))
+        : "",
+    );
+    setRerunInterestRate(
+      preFillSource.interest_rate != null
+        ? String(+(preFillSource.interest_rate * 100).toFixed(2))
+        : "",
+    );
+    setRerunExitCapRate(
+      preFillSource.exit_cap_rate != null
+        ? String(+(preFillSource.exit_cap_rate * 100).toFixed(2))
+        : "",
+    );
   }, [parentVersion?.id, preFillSource]);
 
   const handleRerun = async () => {
@@ -182,21 +198,23 @@ function DealDetailPageInner() {
     setRerunning(true);
     try {
       const overrides: Record<string, number> = {};
-      const pResults = preFillSource;
+      const p = preFillSource;
 
-      if (pResults) {
-        const acqVal = parseFloat(rerunAcquisitionPrice);
-        if (!isNaN(acqVal) && acqVal !== pResults.acquisition_price) overrides.acquisition_price = acqVal;
+      const acqVal = parseFloat(rerunAcquisitionPrice);
+      if (!isNaN(acqVal) && p.acquisition_price != null && acqVal !== p.acquisition_price)
+        overrides.acquisition_price = acqVal;
 
-        const ltvVal = parseFloat(rerunLtv) / 100;
-        if (!isNaN(ltvVal) && Math.abs(ltvVal - (pResults.ltv ?? 0)) > 0.0001) overrides.ltv = ltvVal;
+      const ltvVal = parseFloat(rerunLtv) / 100;
+      if (!isNaN(ltvVal) && p.ltv != null && Math.abs(ltvVal - p.ltv) > 0.0001)
+        overrides.ltv = ltvVal;
 
-        const irVal = parseFloat(rerunInterestRate) / 100;
-        if (!isNaN(irVal) && Math.abs(irVal - (pResults.interest_rate ?? 0)) > 0.0001) overrides.interest_rate = irVal;
+      const irVal = parseFloat(rerunInterestRate) / 100;
+      if (!isNaN(irVal) && p.interest_rate != null && Math.abs(irVal - p.interest_rate) > 0.0001)
+        overrides.interest_rate = irVal;
 
-        const ecVal = parseFloat(rerunExitCapRate) / 100;
-        if (!isNaN(ecVal) && Math.abs(ecVal - (pResults.exit_cap_rate ?? 0)) > 0.0001) overrides.exit_cap_rate = ecVal;
-      }
+      const ecVal = parseFloat(rerunExitCapRate) / 100;
+      if (!isNaN(ecVal) && p.exit_cap_rate != null && Math.abs(ecVal - p.exit_cap_rate) > 0.0001)
+        overrides.exit_cap_rate = ecVal;
 
       const newVersion = await postRerun(id, {
         label: rerunLabel.trim(),
@@ -240,7 +258,10 @@ function DealDetailPageInner() {
 
   if (loading) return <p className="p-8 text-sm text-muted-foreground">Loading...</p>;
   if (error || !deal) return <p className="p-8 text-sm text-destructive">{error}</p>;
-  const r: any = selectedVersion?.results ?? deal.results ?? null;
+  const nSelected = normalizeResults(
+    (selectedVersion?.results ?? deal?.results) as Record<string, unknown> | null,
+    deal as any,
+  );
   const c = deal.comp_summary;
 
   // Sorted versions: base first, then newest first
@@ -266,11 +287,11 @@ function DealDetailPageInner() {
         {/* Metric cards — show selected version metrics */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
           {[
-            { label: "Avg COC", value: r ? fmt(r.avg_coc ?? (r as any).coc, "pct") : "--" },
-            { label: "MOIC", value: r ? fmt(r.moic, "mult") : "--" },
-            { label: "IRR", value: r ? fmt(r.levered_irr ?? (r as any).irr, "pct") : "--" },
-            { label: "Cap Rate", value: r ? fmt(r.cap_rate_going_in ?? (r as any).cap_rate, "pct") : "--" },
-            { label: "NOI", value: r ? fmt(r.noi_stabilized ?? (r as any).noi, "usd") : "--" },
+            { label: "Avg COC", value: fmt(nSelected.avg_coc, "pct") },
+            { label: "MOIC", value: fmt(nSelected.moic, "mult") },
+            { label: "IRR", value: fmt(nSelected.levered_irr, "pct") },
+            { label: "Cap Rate", value: fmt(nSelected.cap_rate, "pct") },
+            { label: "NOI", value: fmt(nSelected.noi, "usd") },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <div className="label-uppercase">{item.label}</div>
@@ -445,7 +466,7 @@ function DealDetailPageInner() {
                           </div>
                           <div className="flex items-center gap-1">
                             <a
-                              href={`${API_BASE}/deals/${id}/versions/${v.id}/download`}
+                              href={`${API_BASE}/deals/${id}/versions/${v.id}/download?api_key=${encodeURIComponent(getApiKey() ?? "")}`}
                               onClick={(e) => e.stopPropagation()}
                               className="p-1 rounded hover:bg-muted transition-colors"
                               title="Download .xlsx"
@@ -582,7 +603,7 @@ function DealDetailPageInner() {
             )}
 
             {/* Financial Results */}
-            {r && (
+            {(nSelected.cap_rate != null || nSelected.levered_irr != null || nSelected.moic != null) && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-foreground">Financial Results</h3>
@@ -594,14 +615,14 @@ function DealDetailPageInner() {
                 </div>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   {[
-                    ["Cap Rate", fmt(r.cap_rate_going_in ?? (r as any).cap_rate, "pct")],
-                    ["NOI", fmt(r.noi_stabilized ?? (r as any).noi, "usd")],
-                    ["Levered IRR", fmt(r.levered_irr ?? (r as any).irr, "pct")],
-                    ["MOIC", fmt(r.moic, "mult")],
-                    ["Loan Amount", fmt(r.loan_amount, "usd")],
-                    ["DSCR", fmtRatio(r?.dscr)],
-                    ["Equity Required", fmt(r.equity_required ?? (r as any).down_payment, "usd")],
-                    ["CoC Year 1", fmt(r.coc_year1, "pct")],
+                    ["Cap Rate", fmt(nSelected.cap_rate, "pct")],
+                    ["NOI", fmt(nSelected.noi, "usd")],
+                    ["Levered IRR", fmt(nSelected.levered_irr, "pct")],
+                    ["MOIC", fmt(nSelected.moic, "mult")],
+                    ["Loan Amount", fmt(nSelected.loan_amount, "usd")],
+                    ["DSCR", fmtRatio(nSelected.dscr)],
+                    ["Equity Required", fmt(nSelected.equity_required, "usd")],
+                    ["CoC Year 1", fmt(nSelected.coc_year1, "pct")],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
                       <span className="label-uppercase">{label}</span>
