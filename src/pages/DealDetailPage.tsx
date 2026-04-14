@@ -150,16 +150,29 @@ export default function DealDetailPage() {
 
   const parentVersion = versions.find((v) => v.id === parentVersionId) ?? versions.find((v) => v.version_number === 0) ?? null;
 
-  // Pre-fill from parent version when it changes
+  // Cascade: selected version → base version → deal.results
+  const preFillSource = useMemo(() => {
+    if (parentVersion?.results) return parentVersion.results;
+    const base = versions.find((v) => v.version_number === 0) ?? versions[0];
+    if (base?.results) return base.results;
+    if (deal?.results) return deal.results as any;
+    return null;
+  }, [parentVersion, versions, deal]);
+
+  // Pre-fill from preFillSource when it changes
   useEffect(() => {
-    if (parentVersion?.results) {
-      const r = parentVersion.results;
-      setRerunAcquisitionPrice(r.acquisition_price != null ? String(r.acquisition_price) : "");
-      setRerunLtv(r.ltv != null ? String(+(r.ltv * 100).toFixed(2)) : "");
-      setRerunInterestRate(r.interest_rate != null ? String(+(r.interest_rate * 100).toFixed(2)) : "");
-      setRerunExitCapRate(r.exit_cap_rate != null ? String(+(r.exit_cap_rate * 100).toFixed(2)) : "");
+    if (preFillSource) {
+      setRerunAcquisitionPrice(preFillSource.acquisition_price != null ? String(preFillSource.acquisition_price) : "");
+      setRerunLtv(preFillSource.ltv != null ? String(+(preFillSource.ltv * 100).toFixed(2)) : "");
+      setRerunInterestRate(preFillSource.interest_rate != null ? String(+(preFillSource.interest_rate * 100).toFixed(2)) : "");
+      setRerunExitCapRate(preFillSource.exit_cap_rate != null ? String(+(preFillSource.exit_cap_rate * 100).toFixed(2)) : "");
+    } else {
+      setRerunAcquisitionPrice("");
+      setRerunLtv("");
+      setRerunInterestRate("");
+      setRerunExitCapRate("");
     }
-  }, [parentVersion?.id]);
+  }, [parentVersion?.id, preFillSource]);
 
   const handleRerun = async () => {
     if (!id || !rerunLabel.trim()) {
