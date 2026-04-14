@@ -603,7 +603,7 @@ function DealDetailPageInner() {
             )}
 
             {/* Financial Results */}
-            {r && (
+            {(nSelected.cap_rate != null || nSelected.levered_irr != null || nSelected.moic != null) && (
               <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-semibold text-foreground">Financial Results</h3>
@@ -615,14 +615,14 @@ function DealDetailPageInner() {
                 </div>
                 <div className="grid grid-cols-2 gap-y-3 text-sm">
                   {[
-                    ["Cap Rate", fmt(r.cap_rate_going_in ?? (r as any).cap_rate, "pct")],
-                    ["NOI", fmt(r.noi_stabilized ?? (r as any).noi, "usd")],
-                    ["Levered IRR", fmt(r.levered_irr ?? (r as any).irr, "pct")],
-                    ["MOIC", fmt(r.moic, "mult")],
-                    ["Loan Amount", fmt(r.loan_amount, "usd")],
-                    ["DSCR", fmtRatio(r?.dscr)],
-                    ["Equity Required", fmt(r.equity_required ?? (r as any).down_payment, "usd")],
-                    ["CoC Year 1", fmt(r.coc_year1, "pct")],
+                    ["Cap Rate", fmt(nSelected.cap_rate, "pct")],
+                    ["NOI", fmt(nSelected.noi, "usd")],
+                    ["Levered IRR", fmt(nSelected.levered_irr, "pct")],
+                    ["MOIC", fmt(nSelected.moic, "mult")],
+                    ["Loan Amount", fmt(nSelected.loan_amount, "usd")],
+                    ["DSCR", fmtRatio(nSelected.dscr)],
+                    ["Equity Required", fmt(nSelected.equity_required, "usd")],
+                    ["CoC Year 1", fmt(nSelected.coc_year1, "pct")],
                   ].map(([label, val]) => (
                     <div key={String(label)}>
                       <span className="label-uppercase">{label}</span>
