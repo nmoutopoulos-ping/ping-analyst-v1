@@ -325,10 +325,10 @@ export default function DealDetailPage() {
                     value={rerunAcquisitionPrice}
                     onChange={(e) => setRerunAcquisitionPrice(e.target.value)}
                   />
-                  {parentVersion?.results?.acquisition_price != null &&
-                    parseFloat(rerunAcquisitionPrice) !== parentVersion.results.acquisition_price && (
+                  {preFillSource?.acquisition_price != null &&
+                    parseFloat(rerunAcquisitionPrice) !== preFillSource.acquisition_price && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtMoney(parentVersion.results.acquisition_price)}
+                        Base: {fmtMoney(preFillSource.acquisition_price)}
                       </p>
                     )}
                 </div>
@@ -343,10 +343,10 @@ export default function DealDetailPage() {
                     value={rerunLtv}
                     onChange={(e) => setRerunLtv(e.target.value)}
                   />
-                  {parentVersion?.results?.ltv != null &&
-                    Math.abs(parseFloat(rerunLtv) - parentVersion.results.ltv * 100) > 0.01 && (
+                  {preFillSource?.ltv != null &&
+                    Math.abs(parseFloat(rerunLtv) - (preFillSource.ltv as number) * 100) > 0.01 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtPct(parentVersion.results.ltv)}
+                        Base: {fmtPct(preFillSource.ltv)}
                       </p>
                     )}
                 </div>
@@ -361,10 +361,10 @@ export default function DealDetailPage() {
                     value={rerunInterestRate}
                     onChange={(e) => setRerunInterestRate(e.target.value)}
                   />
-                  {parentVersion?.results?.interest_rate != null &&
-                    Math.abs(parseFloat(rerunInterestRate) - (parentVersion.results.interest_rate as number) * 100) > 0.01 && (
+                  {preFillSource?.interest_rate != null &&
+                    Math.abs(parseFloat(rerunInterestRate) - (preFillSource.interest_rate as number) * 100) > 0.01 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtPct(parentVersion.results.interest_rate)}
+                        Base: {fmtPct(preFillSource.interest_rate)}
                       </p>
                     )}
                 </div>
@@ -379,10 +379,10 @@ export default function DealDetailPage() {
                     value={rerunExitCapRate}
                     onChange={(e) => setRerunExitCapRate(e.target.value)}
                   />
-                  {parentVersion?.results?.exit_cap_rate != null &&
-                    Math.abs(parseFloat(rerunExitCapRate) - (parentVersion.results.exit_cap_rate as number) * 100) > 0.01 && (
+                  {preFillSource?.exit_cap_rate != null &&
+                    Math.abs(parseFloat(rerunExitCapRate) - (preFillSource.exit_cap_rate as number) * 100) > 0.01 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Base: {fmtPct(parentVersion.results.exit_cap_rate)}
+                        Base: {fmtPct(preFillSource.exit_cap_rate)}
                       </p>
                     )}
                 </div>
@@ -410,8 +410,18 @@ export default function DealDetailPage() {
               <CardTitle className="text-base">Versions</CardTitle>
             </CardHeader>
             <CardContent>
-              {sortedVersions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No versions yet. Run your first rerun!</p>
+              {versionsError ? (
+                <div className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">Couldn't load versions. {(versionsErrorObj as Error)?.message}</p>
+                  <Button variant="outline" size="sm" onClick={() => refetchVersions()}>Retry</Button>
+                </div>
+              ) : versionsLoading ? (
+                <p className="text-sm text-muted-foreground">Loading versions…</p>
+              ) : sortedVersions.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center">
+                  <p className="text-sm text-muted-foreground">No saved versions yet. Run the deal to create the first version.</p>
+                </div>
+              ) : (
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   {sortedVersions.map((v) => {
@@ -462,7 +472,7 @@ export default function DealDetailPage() {
                           <div className="flex gap-3 text-[11px] text-muted-foreground">
                             <span>IRR {fmt(vr.levered_irr, "pct")}</span>
                             <span>MOIC {fmt(vr.moic, "mult")}</span>
-                            <span>DSCR {fmtRatio(vr.dscr as number)}</span>
+                            <span>DSCR {fmtRatio(vr.dscr)}</span>
                             <span>CoC {fmt(vr.coc_year1, "pct")}</span>
                           </div>
                         )}
@@ -590,7 +600,7 @@ export default function DealDetailPage() {
                     ["Levered IRR", fmt(r.levered_irr ?? (r as any).irr, "pct")],
                     ["MOIC", fmt(r.moic, "mult")],
                     ["Loan Amount", fmt(r.loan_amount, "usd")],
-                    ["DSCR", r.dscr != null ? (typeof r.dscr === "string" ? r.dscr : (r.dscr as number).toFixed(2)) : "--"],
+                    ["DSCR", fmtRatio(r?.dscr)],
                     ["Equity Required", fmt(r.equity_required ?? (r as any).down_payment, "usd")],
                     ["CoC Year 1", fmt(r.coc_year1, "pct")],
                   ].map(([label, val]) => (
