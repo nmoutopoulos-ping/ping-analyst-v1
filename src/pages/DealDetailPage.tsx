@@ -106,7 +106,7 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export default function DealDetailPage() {
+function DealDetailPageInner() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -759,5 +759,13 @@ export default function DealDetailPage() {
           </div>
         </div>
       </div>
+  );
+}
+
+export default function DealDetailPage() {
+  return (
+    <ErrorBoundary>
+      <DealDetailPageInner />
+    </ErrorBoundary>
   );
 }
