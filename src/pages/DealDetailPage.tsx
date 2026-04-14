@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Deal } from "@/lib/types";
 import { fmtPct, fmtMoney, fmtRatio } from "@/lib/formatters";
 import DealPhotoGallery from "@/components/DealPhotoGallery";
-
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 const API_BASE = import.meta.env.VITE_API_URL || "https://analyst-docker.onrender.com";
 
 function fmt(val: number | string | undefined | null, type: "pct" | "mult" | "usd" | "num") {
@@ -120,10 +120,11 @@ export default function DealDetailPage() {
   const { toast } = useToast();
 
   // Versions
-  const { data: versions = [] } = useQuery({
+  const { data: versions = [], isLoading: versionsLoading, isError: versionsError, error: versionsErrorObj, refetch: refetchVersions } = useQuery({
     queryKey: ["deal-versions", id],
     queryFn: () => fetchVersions(id!),
     enabled: !!id,
+    retry: 1,
   });
 
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
