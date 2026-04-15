@@ -145,10 +145,10 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
       const counts: Record<string, number> = {};
       const types: Record<string, UnitType> = {};
       (template.combos || []).forEach((c) => {
-        const k = comboKey(c.bed, c.bath);
+        const k = comboKey(c.beds, c.baths);
         combos.add(k);
         counts[k] = c.units;
-        types[k] = c.type || "Apartment";
+        types[k] = (c.type || "Apartment") as UnitType;
       });
       setSelectedCombos(combos);
       setUnitCounts(counts);
@@ -207,7 +207,7 @@ export default function TemplateModal({ open, template, onClose, onSave, onSaveA
     const combos: UnitCombo[] = [];
     selectedCombos.forEach((k) => {
       const [bed, bath] = k.split("-").map(Number);
-      combos.push({ bed, bath, units: unitCounts[k] || 1, type: unitTypes[k] || "Apartment" });
+      combos.push({ beds: bed, baths: bath, units: unitCounts[k] || 1, type: unitTypes[k] || "Apartment" });
     });
     return {
       name,
