@@ -446,7 +446,7 @@ function DealDetailPageInner() {
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   {sortedVersions.map((v) => {
                     const isSelected = v.id === selectedVersionId;
-                    const vr = v.results;
+                    const nv = normalizeResults(v.results as unknown as Record<string, unknown> | null);
                     return (
                       <button
                         key={v.id}
@@ -488,12 +488,12 @@ function DealDetailPageInner() {
                           </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground mb-1.5">{timeAgo(v.created_at)}</p>
-                        {vr && (
+                        {nv && (
                           <div className="flex gap-3 text-[11px] text-muted-foreground">
-                            <span>IRR {fmt(vr.levered_irr, "pct")}</span>
-                            <span>MOIC {fmt(vr.moic, "mult")}</span>
-                            <span>DSCR {fmtRatio(vr.dscr)}</span>
-                            <span>CoC {fmt(vr.coc_year1, "pct")}</span>
+                            <span>IRR {fmt(nv.levered_irr, "pct")}</span>
+                            <span>MOIC {fmt(nv.moic, "mult")}</span>
+                            <span>DSCR {fmtRatio(nv.dscr)}</span>
+                            <span>CoC {fmt(nv.coc_year1, "pct")}</span>
                           </div>
                         )}
                       </button>
