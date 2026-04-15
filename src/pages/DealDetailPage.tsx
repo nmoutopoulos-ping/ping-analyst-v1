@@ -446,7 +446,7 @@ function DealDetailPageInner() {
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
                   {sortedVersions.map((v) => {
                     const isSelected = v.id === selectedVersionId;
-                    const vr = v.results;
+                    const nv = normalizeResults(v.results as Record<string, unknown> | null);
                     return (
                       <button
                         key={v.id}
