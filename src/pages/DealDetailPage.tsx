@@ -287,9 +287,9 @@ function DealDetailPageInner() {
         {/* Metric cards — show selected version metrics */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
           {[
-            { label: "Avg COC", value: fmt(nSelected.avg_coc, "pct") },
-            { label: "MOIC", value: fmt(nSelected.moic, "mult") },
-            { label: "IRR", value: fmt(nSelected.levered_irr, "pct") },
+            { label: "Levered avg CoC", value: fmt(nSelected.avg_coc, "pct") },
+            { label: "Levered MOIC", value: fmt(nSelected.moic, "mult") },
+            { label: "Levered IRR", value: fmt(nSelected.levered_irr, "pct") },
             { label: "Cap Rate", value: fmt(nSelected.cap_rate, "pct") },
             { label: "NOI", value: fmt(nSelected.noi, "usd") },
           ].map((item) => (
@@ -493,7 +493,7 @@ function DealDetailPageInner() {
                             <span>IRR {fmt(nv.levered_irr, "pct")}</span>
                             <span>MOIC {fmt(nv.moic, "mult")}</span>
                             <span>DSCR {fmtRatio(nv.dscr)}</span>
-                            <span>CoC {fmt(nv.coc_year1, "pct")}</span>
+                            <span>Avg CoC {fmt(nv.avg_coc, "pct")}</span>
                           </div>
                         )}
                       </button>
