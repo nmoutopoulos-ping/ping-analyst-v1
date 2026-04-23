@@ -13,6 +13,7 @@
 export type NormalizedResults = {
   levered_irr: number | string | null;
   moic: number | null;
+  lp_moic: number | null;
   avg_coc: number | null;
   coc_year1: number | null;
   noi: number | null;
@@ -22,6 +23,8 @@ export type NormalizedResults = {
   acquisition_price: number | null;
   loan_amount: number | null;
   equity_required: number | null;
+  total_equity: number | null;
+  total_profit: number | null;
   ltv: number | null;
   interest_rate: number | null;
   exit_cap_rate: number | null;
@@ -56,9 +59,13 @@ export function normalizeResults(
   const a = (deal?.assumptions_snapshot ?? {}) as Record<string, unknown>;
   const monthlyCfLegacy = num(r.monthly_cash_flow);
 
+  const totalEquity =
+    num(r.total_equity) ?? num(r.equity_required) ?? num(r.down_payment);
+
   return {
     levered_irr: irrPassthrough(r.levered_irr ?? r.irr),
     moic: num(r.moic),
+    lp_moic: num(r.lp_moic),
     avg_coc: num(r.avg_coc ?? r.coc),
     coc_year1: num(r.coc_year1 ?? r.coc),
     noi: num(r.noi_stabilized ?? r.noi),
@@ -70,12 +77,13 @@ export function normalizeResults(
     acquisition_price: num(r.acquisition_price) ?? num(deal?.price),
     loan_amount: num(r.loan_amount),
     equity_required: num(r.equity_required ?? r.down_payment),
+    total_equity: totalEquity,
+    total_profit: num(r.total_profit),
     ltv: num(r.ltv) ?? num(a.ltv) ?? 0.7,
     interest_rate: num(r.interest_rate) ?? num(a.intRate) ?? 0.065,
-    exit_cap_rate:
-      num(r.exit_cap_rate) ??
-      num(r.cap_rate_going_in) ??
-      num(r.cap_rate) ??
-      null,
+    // CRITICAL: exit_cap_rate must come from results or assumptions_snapshot.exit_cap_rate.
+    // Never fall back to entry cap (cap_rate_going_in / cap_rate) — that was a bug
+    // showing 1.3% (entry) instead of 7% (exit).
+    exit_cap_rate: num(r.exit_cap_rate) ?? num(a.exit_cap_rate) ?? null,
   };
 }
