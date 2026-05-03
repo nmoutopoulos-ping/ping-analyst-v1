@@ -1611,6 +1611,9 @@ export default function LeaseParserPage() {
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm font-medium text-foreground truncate">{lease.filename}</p>
+                              <Badge className={`text-[10px] shrink-0 ${DOC_TYPE_BADGE_CLASS[(lease.document_type as DocumentType) || "lease"]}`}>
+                                {DOC_TYPE_LABELS[(lease.document_type as DocumentType) || "lease"]}
+                              </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {lease.tenant_name && `${lease.tenant_name}`}
