@@ -268,9 +268,9 @@ function getApiKey(): string | null {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function FieldValue({ value, fieldName, confidentlyExtracted }: { value: unknown; fieldName: string; confidentlyExtracted: string[] | null }) {
+function FieldValue({ value, fieldName, confidentlyExtracted, docType }: { value: unknown; fieldName: string; confidentlyExtracted: string[] | null; docType: DocumentType }) {
   const isConfident = confidentlyExtracted?.includes(fieldName);
-  const config = fieldConfigs[fieldName];
+  const config = FIELD_SCHEMAS[docType]?.[fieldName];
 
   if (Array.isArray(value)) {
     return (
