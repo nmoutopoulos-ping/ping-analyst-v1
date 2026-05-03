@@ -1720,9 +1720,9 @@ export default function LeaseParserPage() {
     return (
       <main className="max-w-4xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+          <h1 className="text-2xl font-bold text-foreground">Document Parser</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
+            Upload up to {MAX_FILES} documents and we'll extract key terms, financials, deal structure, and more.
           </p>
         </div>
 
@@ -1735,7 +1735,7 @@ export default function LeaseParserPage() {
             }}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            Saved Leases
+            Saved Documents
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
