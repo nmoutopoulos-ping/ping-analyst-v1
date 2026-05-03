@@ -915,6 +915,7 @@ export default function LeaseParserPage() {
   const parseOneFile = async (item: QueueItem, token: string): Promise<QueueItem> => {
     const formData = new FormData();
     formData.append("file", item.file);
+    formData.append("document_type", item.documentType);
 
     try {
       const response = await fetch(API_URL, {
