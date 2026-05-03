@@ -91,35 +91,143 @@ interface FieldConfig {
 
 const MAX_FILES = 20;
 const VALID_EXTENSIONS = [".pdf", ".txt", ".csv", ".xlsx"];
-const API_URL = "https://analyst-docker.onrender.com/api/parse-lease";
+const API_URL = "https://analyst-docker.onrender.com/api/parse-document";
 
-const fieldConfigs: Record<string, FieldConfig> = {
-  tenant_name: { label: "Tenant Name", section: "Tenant Info" },
-  tenant_entity_type: { label: "Entity Type", section: "Tenant Info" },
-  guarantor_name: { label: "Guarantor Name", section: "Tenant Info" },
-  property_address: { label: "Property Address", section: "Property" },
-  unit_number: { label: "Unit Number", section: "Property" },
-  asset_class: { label: "Asset Class", section: "Property" },
-  lease_start_date: { label: "Lease Start Date", section: "Lease Terms" },
-  lease_end_date: { label: "Lease End Date", section: "Lease Terms" },
-  lease_term_months: { label: "Lease Term (months)", section: "Lease Terms" },
-  base_rent_monthly: { label: "Base Rent (monthly)", section: "Rent" },
-  base_rent_annual: { label: "Base Rent (annual)", section: "Rent" },
-  rent_escalation_type: { label: "Escalation Type", section: "Rent" },
-  rent_escalation_value: { label: "Escalation Value", section: "Rent" },
-  free_rent_months: { label: "Free Rent (months)", section: "Rent" },
-  security_deposit: { label: "Security Deposit", section: "Rent" },
-  expense_structure: { label: "Expense Structure", section: "Expenses" },
-  tenant_responsible_expenses: { label: "Tenant Responsible", section: "Expenses", isArray: true },
-  landlord_responsible_expenses: { label: "Landlord Responsible", section: "Expenses", isArray: true },
-  tenant_improvement_allowance: { label: "Tenant Improvement Allowance", section: "Expenses" },
-  renewal_options: { label: "Renewal Options", section: "Options" },
-  termination_option: { label: "Termination Option", section: "Options" },
-  termination_notice_months: { label: "Termination Notice (months)", section: "Options" },
-  notes: { label: "Notes", section: "Confidence" },
+const DOC_TYPE_LABELS: Record<DocumentType, string> = {
+  lease: "Lease",
+  om: "OM",
+  psa: "PSA",
 };
 
-const sections = ["Tenant Info", "Property", "Lease Terms", "Rent", "Expenses", "Options", "Confidence"];
+const DOC_TYPE_FULL_LABELS: Record<DocumentType, string> = {
+  lease: "Lease",
+  om: "Offering Memorandum",
+  psa: "Purchase & Sale",
+};
+
+const DOC_TYPE_BADGE_CLASS: Record<DocumentType, string> = {
+  lease: "bg-muted text-foreground border-border",
+  om: "bg-blue-100 text-blue-700 border-blue-200",
+  psa: "bg-amber-100 text-amber-700 border-amber-200",
+};
+
+const DOC_TYPE_DESCRIPTIONS: Record<DocumentType, string> = {
+  lease:
+    "Each lease is parsed for 24 key fields including tenant info, property details, lease terms, rent structure, expense allocation, renewal/termination options, and extraction confidence scores.",
+  om:
+    "Each OM is parsed for 32 key fields including property overview, unit mix, financial summary (NOI, cap rate, expenses), rent roll highlights, proposed financing, projected returns, and extraction confidence scores.",
+  psa:
+    "Each PSA is parsed for 28 key fields including buyer/seller info, purchase price, earnest money, due diligence period, financing contingency, closing details, legal provisions, and extraction confidence scores.",
+};
+
+const FIELD_SCHEMAS: Record<DocumentType, Record<string, FieldConfig>> = {
+  lease: {
+    tenant_name: { label: "Tenant Name", section: "Tenant Info" },
+    tenant_entity_type: { label: "Entity Type", section: "Tenant Info" },
+    guarantor_name: { label: "Guarantor Name", section: "Tenant Info" },
+    property_address: { label: "Property Address", section: "Property" },
+    unit_number: { label: "Unit Number", section: "Property" },
+    asset_class: { label: "Asset Class", section: "Property" },
+    lease_start_date: { label: "Lease Start Date", section: "Lease Terms" },
+    lease_end_date: { label: "Lease End Date", section: "Lease Terms" },
+    lease_term_months: { label: "Lease Term (months)", section: "Lease Terms" },
+    base_rent_monthly: { label: "Base Rent (monthly)", section: "Rent" },
+    base_rent_annual: { label: "Base Rent (annual)", section: "Rent" },
+    rent_escalation_type: { label: "Escalation Type", section: "Rent" },
+    rent_escalation_value: { label: "Escalation Value", section: "Rent" },
+    free_rent_months: { label: "Free Rent (months)", section: "Rent" },
+    security_deposit: { label: "Security Deposit", section: "Rent" },
+    expense_structure: { label: "Expense Structure", section: "Expenses" },
+    tenant_responsible_expenses: { label: "Tenant Responsible", section: "Expenses", isArray: true },
+    landlord_responsible_expenses: { label: "Landlord Responsible", section: "Expenses", isArray: true },
+    tenant_improvement_allowance: { label: "Tenant Improvement Allowance", section: "Expenses" },
+    renewal_options: { label: "Renewal Options", section: "Options", isArray: true },
+    termination_option: { label: "Termination Option", section: "Options" },
+    termination_notice_months: { label: "Termination Notice (months)", section: "Options" },
+    notes: { label: "Notes", section: "Confidence" },
+  },
+  om: {
+    property_name: { label: "Property Name", section: "Property Overview" },
+    property_address: { label: "Property Address", section: "Property Overview" },
+    asset_class: { label: "Asset Class", section: "Property Overview" },
+    property_type: { label: "Property Type", section: "Property Overview" },
+    year_built: { label: "Year Built", section: "Property Overview" },
+    year_renovated: { label: "Year Renovated", section: "Property Overview" },
+    lot_size_acres: { label: "Lot Size (acres)", section: "Property Overview" },
+    building_sf: { label: "Building SF", section: "Property Overview" },
+    total_units: { label: "Total Units", section: "Property Overview" },
+    unit_mix: { label: "Unit Mix", section: "Property Overview", isArray: true },
+    occupancy_rate: { label: "Occupancy Rate", section: "Property Overview" },
+    amenities: { label: "Amenities", section: "Property Overview", isArray: true },
+    asking_price: { label: "Asking Price", section: "Financials" },
+    price_per_unit: { label: "Price / Unit", section: "Financials" },
+    price_per_sf: { label: "Price / SF", section: "Financials" },
+    cap_rate: { label: "Cap Rate", section: "Financials" },
+    noi: { label: "NOI", section: "Financials" },
+    effective_gross_income: { label: "Effective Gross Income", section: "Financials" },
+    operating_expenses: { label: "Operating Expenses", section: "Financials" },
+    expense_ratio: { label: "Expense Ratio", section: "Financials" },
+    gross_rent_multiplier: { label: "GRM", section: "Financials" },
+    average_rent_per_unit: { label: "Avg Rent / Unit", section: "Income" },
+    market_rent_per_unit: { label: "Market Rent / Unit", section: "Income" },
+    rent_growth_potential: { label: "Rent Growth Potential", section: "Income" },
+    other_income: { label: "Other Income", section: "Income" },
+    vacancy_loss: { label: "Vacancy Loss", section: "Income" },
+    proposed_financing: { label: "Proposed Financing", section: "Returns" },
+    loan_to_value: { label: "Loan-to-Value", section: "Returns" },
+    debt_service: { label: "Debt Service", section: "Returns" },
+    cash_on_cash_return: { label: "Cash-on-Cash Return", section: "Returns" },
+    projected_irr: { label: "Projected IRR", section: "Returns" },
+    seller_broker: { label: "Seller / Broker", section: "Context" },
+    notes: { label: "Notes", section: "Confidence" },
+  },
+  psa: {
+    buyer_name: { label: "Buyer Name", section: "Parties" },
+    buyer_entity_type: { label: "Buyer Entity Type", section: "Parties" },
+    seller_name: { label: "Seller Name", section: "Parties" },
+    seller_entity_type: { label: "Seller Entity Type", section: "Parties" },
+    property_address: { label: "Property Address", section: "Property" },
+    legal_description: { label: "Legal Description", section: "Property" },
+    asset_class: { label: "Asset Class", section: "Property" },
+    property_type: { label: "Property Type", section: "Property" },
+    purchase_price: { label: "Purchase Price", section: "Deal Terms" },
+    earnest_money_deposit: { label: "Earnest Money Deposit", section: "Deal Terms" },
+    additional_deposit: { label: "Additional Deposit", section: "Deal Terms" },
+    deposit_escrow_agent: { label: "Escrow Agent", section: "Deal Terms" },
+    closing_date: { label: "Closing Date", section: "Deal Terms" },
+    due_diligence_period_days: { label: "Due Diligence (days)", section: "Deal Terms" },
+    due_diligence_expiration: { label: "DD Expiration", section: "Deal Terms" },
+    financing_contingency: { label: "Financing Contingency", section: "Deal Terms" },
+    financing_type: { label: "Financing Type", section: "Deal Terms" },
+    loan_amount: { label: "Loan Amount", section: "Deal Terms" },
+    inspection_contingency: { label: "Inspection Contingency", section: "Deal Terms" },
+    title_company: { label: "Title Company", section: "Legal" },
+    closing_costs_allocation: { label: "Closing Costs", section: "Legal" },
+    prorations: { label: "Prorations", section: "Legal" },
+    representations_warranties: { label: "Reps & Warranties", section: "Legal" },
+    default_remedies_buyer: { label: "Default (Buyer)", section: "Legal" },
+    default_remedies_seller: { label: "Default (Seller)", section: "Legal" },
+    assignment_rights: { label: "Assignment Rights", section: "Legal" },
+    governing_law: { label: "Governing Law", section: "Legal" },
+    notes: { label: "Notes", section: "Confidence" },
+  },
+};
+
+const SECTIONS_BY_TYPE: Record<DocumentType, string[]> = {
+  lease: ["Tenant Info", "Property", "Lease Terms", "Rent", "Expenses", "Options", "Confidence"],
+  om: ["Property Overview", "Financials", "Income", "Returns", "Context", "Confidence"],
+  psa: ["Parties", "Property", "Deal Terms", "Legal", "Confidence"],
+};
+
+// Lease columns spread for backward compat when saving leases
+const LEASE_COLUMN_KEYS = [
+  "tenant_name", "tenant_entity_type", "property_address", "unit_number", "asset_class",
+  "lease_start_date", "lease_end_date", "lease_term_months", "base_rent_monthly", "base_rent_annual",
+  "rent_escalation_type", "rent_escalation_value", "free_rent_months", "security_deposit",
+  "expense_structure", "tenant_responsible_expenses", "landlord_responsible_expenses",
+  "tenant_improvement_allowance", "renewal_options", "termination_option", "termination_notice_months",
+  "guarantor_name", "commencement_conditions",
+];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
