@@ -752,6 +752,14 @@ function GroupMenu({
   );
 }
 
+function getDisplayData(extraction: SavedLease): { docType: DocumentType; parsed: ParsedFields } {
+  const docType = (extraction.document_type as DocumentType) || "lease";
+  if (docType === "lease" && !extraction.parsed_data) {
+    return { docType, parsed: extraction as unknown as ParsedFields };
+  }
+  return { docType, parsed: (extraction.parsed_data as ParsedFields) || (extraction as unknown as ParsedFields) };
+}
+
 function SingleResult({
   item,
   onBack,
@@ -766,9 +774,19 @@ function SingleResult({
   const filename = isQueueItem ? (item as QueueItem).file.name : (item as SavedLease).filename;
   const fileSize = isQueueItem ? (item as QueueItem).file.size : undefined;
 
-  // For saved leases, reconstruct parsed data from the item
-  const parsed = result?.parsed || (isSavedLease ? (item as SavedLease) : null);
+  let docType: DocumentType = "lease";
+  let parsed: ParsedFields | null = null;
+  if (isQueueItem) {
+    docType = (item as QueueItem).documentType;
+    parsed = result?.parsed ?? null;
+  } else if (isSavedLease) {
+    const display = getDisplayData(item as SavedLease);
+    docType = display.docType;
+    parsed = display.parsed;
+  }
   const usage = result?.usage;
+  const schema = FIELD_SCHEMAS[docType];
+  const sectionsForType = SECTIONS_BY_TYPE[docType];
 
   return (
     <div>
@@ -776,12 +794,15 @@ function SingleResult({
         <ChevronLeft className="h-4 w-4" /> Back
       </button>
 
-      <h2 className="text-xl font-bold text-foreground mb-1">{filename}</h2>
+      <div className="flex items-center gap-3 mb-1">
+        <h2 className="text-xl font-bold text-foreground">{filename}</h2>
+        <Badge className={`text-xs ${DOC_TYPE_BADGE_CLASS[docType]}`}>{DOC_TYPE_LABELS[docType]}</Badge>
+      </div>
       {fileSize && <p className="text-sm text-muted-foreground mb-6">{formatBytes(fileSize)}</p>}
 
       <div className="grid gap-6 mb-8">
-        {sections.map((section) => {
-          const fieldsInSection = Object.entries(fieldConfigs).filter(([_, config]) => config.section === section);
+        {sectionsForType.map((section) => {
+          const fieldsInSection = Object.entries(schema).filter(([_, config]) => config.section === section);
           if (fieldsInSection.length === 0) return null;
           return (
             <Card key={section}>
@@ -795,9 +816,10 @@ function SingleResult({
                       <p className="text-sm font-medium text-foreground">{config.label}</p>
                       {parsed && (
                         <FieldValue
-                          value={parsed[fieldName as keyof LeaseFields]}
+                          value={parsed[fieldName]}
                           fieldName={fieldName}
-                          confidentlyExtracted={(parsed as any).confidently_extracted}
+                          confidentlyExtracted={(parsed.confidently_extracted as string[]) || (parsed.confidence as string[]) || null}
+                          docType={docType}
                         />
                       )}
                     </div>
