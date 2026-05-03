@@ -1778,6 +1778,9 @@ export default function LeaseParserPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
+                <Badge className={`text-[10px] ${DOC_TYPE_BADGE_CLASS[item.documentType]}`}>
+                  {DOC_TYPE_LABELS[item.documentType]}
+                </Badge>
                 {item.status === "done" && (
                   <>
                     <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
