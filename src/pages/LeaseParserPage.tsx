@@ -1416,14 +1416,18 @@ export default function LeaseParserPage() {
     initSavedTab();
   }, [tab]);
 
-  // Filter leases based on selected group (computed every render, cheap)
-  const filteredLeases =
+  // Filter leases based on selected group + document type filter
+  const groupFilteredLeases =
     selectedGroupId === null
       ? savedLeases
       : savedLeases.filter((lease) => {
           const groupMemberIds = groupMembers.get(selectedGroupId);
           return groupMemberIds?.includes(lease.id);
         });
+  const filteredLeases =
+    savedFilter === "all"
+      ? groupFilteredLeases
+      : groupFilteredLeases.filter((l) => ((l.document_type as DocumentType) || "lease") === savedFilter);
 
   // Group member counts
   const groupMembersCount = new Map<string, number>();
