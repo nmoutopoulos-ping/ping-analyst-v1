@@ -1831,9 +1831,9 @@ export default function LeaseParserPage() {
   return (
     <main className="max-w-4xl px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+        <h1 className="text-2xl font-bold text-foreground">Document Parser</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
+          Upload up to {MAX_FILES} documents and we'll extract key terms, financials, deal structure, and more.
         </p>
       </div>
 
@@ -1846,7 +1846,7 @@ export default function LeaseParserPage() {
           }}
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
-          Saved Leases
+          Saved Documents
         </button>
         <button
           className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
@@ -1855,10 +1855,39 @@ export default function LeaseParserPage() {
         </button>
       </div>
 
+      {/* Document type segmented control */}
+      <div className="mb-6">
+        <p className="text-sm font-medium text-foreground mb-2">Document type</p>
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 gap-1">
+          {(["lease", "om", "psa"] as const).map((dt) => {
+            const active = documentType === dt;
+            return (
+              <button
+                key={dt}
+                onClick={() => {
+                  if (dt !== documentType) {
+                    setDocumentType(dt);
+                    setQueue([]);
+                  }
+                }}
+                disabled={processing}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                } disabled:opacity-50`}
+              >
+                {DOC_TYPE_FULL_LABELS[dt]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <Card className="border border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileUp className="h-5 w-5" /> Upload Lease Documents
+            <FileUp className="h-5 w-5" /> Upload {DOC_TYPE_FULL_LABELS[documentType]} Documents
           </CardTitle>
           <CardDescription>
             {queue.length === 0
@@ -1913,10 +1942,7 @@ export default function LeaseParserPage() {
           <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
           <div>
             <p className="font-semibold text-foreground mb-1">What gets extracted?</p>
-            <p>
-              Each lease is parsed for 24 key fields including tenant info, property details, lease terms,
-              rent structure, expense allocation, renewal/termination options, and extraction confidence scores.
-            </p>
+            <p>{DOC_TYPE_DESCRIPTIONS[documentType]}</p>
           </div>
         </div>
       </div>
