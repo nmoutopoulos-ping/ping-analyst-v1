@@ -1463,7 +1463,7 @@ export default function LeaseParserPage() {
     return (
       <main className="max-w-6xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Saved Lease Details</h1>
+          <h1 className="text-2xl font-bold text-foreground">Saved Document Details</h1>
         </div>
         <SingleResult item={viewingSaved as any} onBack={() => setViewingSavedId(null)} isSavedLease />
 
