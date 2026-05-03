@@ -902,7 +902,7 @@ export default function LeaseParserPage() {
       if (valid.length > remaining) {
         toast({ title: "Limit reached", description: `Only added ${remaining} of ${valid.length} files (max ${MAX_FILES}).` });
       }
-      return [...prev, ...toAdd.map((f) => ({ id: fileId(), file: f, status: "pending" as FileStatus }))];
+      return [...prev, ...toAdd.map((f) => ({ id: fileId(), file: f, status: "pending" as FileStatus, documentType }))];
     });
   };
 
