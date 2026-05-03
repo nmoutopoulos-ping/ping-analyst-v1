@@ -1727,8 +1727,8 @@ export default function LeaseParserPage() {
                   <p className="text-sm font-medium text-foreground truncate">{item.file.name}</p>
                   {item.status === "done" && item.result?.parsed.tenant_name && (
                     <p className="text-xs text-muted-foreground">
-                      {item.result.parsed.tenant_name}
-                      {item.result.parsed.property_address ? ` — ${item.result.parsed.property_address}` : ""}
+                      {String(item.result.parsed.tenant_name)}
+                      {item.result.parsed.property_address ? ` — ${String(item.result.parsed.property_address)}` : ""}
                     </p>
                   )}
                   {item.status === "error" && (
