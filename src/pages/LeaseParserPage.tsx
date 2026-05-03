@@ -22,32 +22,13 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface LeaseFields {
-  tenant_name: string | null;
-  tenant_entity_type: string | null;
-  guarantor_name: string | null;
-  property_address: string | null;
-  unit_number: string | null;
-  asset_class: string | null;
-  lease_start_date: string | null;
-  lease_end_date: string | null;
-  lease_term_months: number | null;
-  base_rent_monthly: number | null;
-  base_rent_annual: number | null;
-  rent_escalation_type: string | null;
-  rent_escalation_value: number | null;
-  free_rent_months: number | null;
-  security_deposit: number | null;
-  expense_structure: string | null;
-  tenant_responsible_expenses: string[] | null;
-  landlord_responsible_expenses: string[] | null;
-  tenant_improvement_allowance: number | null;
-  renewal_options: string[] | null;
-  termination_option: string | null;
-  termination_notice_months: number | null;
-  confidently_extracted: string[] | null;
-  notes: string | null;
-}
+export type DocumentType = "lease" | "om" | "psa";
+
+type ParsedFields = Record<string, unknown> & {
+  confidently_extracted?: string[] | null;
+  notes?: string | null;
+  confidence?: string[] | null;
+};
 
 interface UsageInfo {
   prompt_tokens: number;
@@ -58,7 +39,8 @@ interface UsageInfo {
 
 interface ParseResult {
   ok: boolean;
-  parsed: LeaseFields;
+  document_type?: DocumentType;
+  parsed: ParsedFields;
   usage: UsageInfo;
 }
 
@@ -68,6 +50,7 @@ interface QueueItem {
   id: string;
   file: File;
   status: FileStatus;
+  documentType: DocumentType;
   result?: ParseResult;
   error?: string;
 }
