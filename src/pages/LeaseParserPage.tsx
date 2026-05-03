@@ -1486,8 +1486,8 @@ export default function LeaseParserPage() {
     return (
       <main className="px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage and review your saved lease extractions.</p>
+          <h1 className="text-2xl font-bold text-foreground">Document Parser</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage and review your saved document extractions.</p>
         </div>
 
         {/* Tab bar */}
@@ -1495,7 +1495,7 @@ export default function LeaseParserPage() {
           <button
             className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
           >
-            Saved Leases
+            Saved Documents
           </button>
           <button
             onClick={() => setTab("parse")}
@@ -1513,10 +1513,10 @@ export default function LeaseParserPage() {
           <Card className="border-border/50">
             <CardContent className="pt-12 pb-12 text-center">
               <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">No saved leases yet.</p>
-              <p className="text-sm text-muted-foreground mb-6">Parse some leases and save them to build your library.</p>
+              <p className="text-muted-foreground">No saved documents yet.</p>
+              <p className="text-sm text-muted-foreground mb-6">Parse leases, OMs, or PSAs to build your library.</p>
               <Button onClick={() => setTab("parse")} variant="outline">
-                Parse New Leases
+                Parse New Documents
               </Button>
             </CardContent>
           </Card>
