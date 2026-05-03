@@ -22,32 +22,13 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface LeaseFields {
-  tenant_name: string | null;
-  tenant_entity_type: string | null;
-  guarantor_name: string | null;
-  property_address: string | null;
-  unit_number: string | null;
-  asset_class: string | null;
-  lease_start_date: string | null;
-  lease_end_date: string | null;
-  lease_term_months: number | null;
-  base_rent_monthly: number | null;
-  base_rent_annual: number | null;
-  rent_escalation_type: string | null;
-  rent_escalation_value: number | null;
-  free_rent_months: number | null;
-  security_deposit: number | null;
-  expense_structure: string | null;
-  tenant_responsible_expenses: string[] | null;
-  landlord_responsible_expenses: string[] | null;
-  tenant_improvement_allowance: number | null;
-  renewal_options: string[] | null;
-  termination_option: string | null;
-  termination_notice_months: number | null;
-  confidently_extracted: string[] | null;
-  notes: string | null;
-}
+export type DocumentType = "lease" | "om" | "psa";
+
+type ParsedFields = Record<string, unknown> & {
+  confidently_extracted?: string[] | null;
+  notes?: string | null;
+  confidence?: string[] | null;
+};
 
 interface UsageInfo {
   prompt_tokens: number;
@@ -58,7 +39,8 @@ interface UsageInfo {
 
 interface ParseResult {
   ok: boolean;
-  parsed: LeaseFields;
+  document_type?: DocumentType;
+  parsed: ParsedFields;
   usage: UsageInfo;
 }
 
@@ -68,6 +50,7 @@ interface QueueItem {
   id: string;
   file: File;
   status: FileStatus;
+  documentType: DocumentType;
   result?: ParseResult;
   error?: string;
 }
@@ -79,6 +62,8 @@ interface SavedLease {
   property_address: string | null;
   base_rent_monthly: number | null;
   created_at: string;
+  document_type?: DocumentType | null;
+  parsed_data?: ParsedFields | null;
   [key: string]: unknown;
 }
 
@@ -108,35 +93,143 @@ interface FieldConfig {
 
 const MAX_FILES = 20;
 const VALID_EXTENSIONS = [".pdf", ".txt", ".csv", ".xlsx"];
-const API_URL = "https://analyst-docker.onrender.com/api/parse-lease";
+const API_URL = "https://analyst-docker.onrender.com/api/parse-document";
 
-const fieldConfigs: Record<string, FieldConfig> = {
-  tenant_name: { label: "Tenant Name", section: "Tenant Info" },
-  tenant_entity_type: { label: "Entity Type", section: "Tenant Info" },
-  guarantor_name: { label: "Guarantor Name", section: "Tenant Info" },
-  property_address: { label: "Property Address", section: "Property" },
-  unit_number: { label: "Unit Number", section: "Property" },
-  asset_class: { label: "Asset Class", section: "Property" },
-  lease_start_date: { label: "Lease Start Date", section: "Lease Terms" },
-  lease_end_date: { label: "Lease End Date", section: "Lease Terms" },
-  lease_term_months: { label: "Lease Term (months)", section: "Lease Terms" },
-  base_rent_monthly: { label: "Base Rent (monthly)", section: "Rent" },
-  base_rent_annual: { label: "Base Rent (annual)", section: "Rent" },
-  rent_escalation_type: { label: "Escalation Type", section: "Rent" },
-  rent_escalation_value: { label: "Escalation Value", section: "Rent" },
-  free_rent_months: { label: "Free Rent (months)", section: "Rent" },
-  security_deposit: { label: "Security Deposit", section: "Rent" },
-  expense_structure: { label: "Expense Structure", section: "Expenses" },
-  tenant_responsible_expenses: { label: "Tenant Responsible", section: "Expenses", isArray: true },
-  landlord_responsible_expenses: { label: "Landlord Responsible", section: "Expenses", isArray: true },
-  tenant_improvement_allowance: { label: "Tenant Improvement Allowance", section: "Expenses" },
-  renewal_options: { label: "Renewal Options", section: "Options" },
-  termination_option: { label: "Termination Option", section: "Options" },
-  termination_notice_months: { label: "Termination Notice (months)", section: "Options" },
-  notes: { label: "Notes", section: "Confidence" },
+const DOC_TYPE_LABELS: Record<DocumentType, string> = {
+  lease: "Lease",
+  om: "OM",
+  psa: "PSA",
 };
 
-const sections = ["Tenant Info", "Property", "Lease Terms", "Rent", "Expenses", "Options", "Confidence"];
+const DOC_TYPE_FULL_LABELS: Record<DocumentType, string> = {
+  lease: "Lease",
+  om: "Offering Memorandum",
+  psa: "Purchase & Sale",
+};
+
+const DOC_TYPE_BADGE_CLASS: Record<DocumentType, string> = {
+  lease: "bg-muted text-foreground border-border",
+  om: "bg-blue-100 text-blue-700 border-blue-200",
+  psa: "bg-amber-100 text-amber-700 border-amber-200",
+};
+
+const DOC_TYPE_DESCRIPTIONS: Record<DocumentType, string> = {
+  lease:
+    "Each lease is parsed for 24 key fields including tenant info, property details, lease terms, rent structure, expense allocation, renewal/termination options, and extraction confidence scores.",
+  om:
+    "Each OM is parsed for 32 key fields including property overview, unit mix, financial summary (NOI, cap rate, expenses), rent roll highlights, proposed financing, projected returns, and extraction confidence scores.",
+  psa:
+    "Each PSA is parsed for 28 key fields including buyer/seller info, purchase price, earnest money, due diligence period, financing contingency, closing details, legal provisions, and extraction confidence scores.",
+};
+
+const FIELD_SCHEMAS: Record<DocumentType, Record<string, FieldConfig>> = {
+  lease: {
+    tenant_name: { label: "Tenant Name", section: "Tenant Info" },
+    tenant_entity_type: { label: "Entity Type", section: "Tenant Info" },
+    guarantor_name: { label: "Guarantor Name", section: "Tenant Info" },
+    property_address: { label: "Property Address", section: "Property" },
+    unit_number: { label: "Unit Number", section: "Property" },
+    asset_class: { label: "Asset Class", section: "Property" },
+    lease_start_date: { label: "Lease Start Date", section: "Lease Terms" },
+    lease_end_date: { label: "Lease End Date", section: "Lease Terms" },
+    lease_term_months: { label: "Lease Term (months)", section: "Lease Terms" },
+    base_rent_monthly: { label: "Base Rent (monthly)", section: "Rent" },
+    base_rent_annual: { label: "Base Rent (annual)", section: "Rent" },
+    rent_escalation_type: { label: "Escalation Type", section: "Rent" },
+    rent_escalation_value: { label: "Escalation Value", section: "Rent" },
+    free_rent_months: { label: "Free Rent (months)", section: "Rent" },
+    security_deposit: { label: "Security Deposit", section: "Rent" },
+    expense_structure: { label: "Expense Structure", section: "Expenses" },
+    tenant_responsible_expenses: { label: "Tenant Responsible", section: "Expenses", isArray: true },
+    landlord_responsible_expenses: { label: "Landlord Responsible", section: "Expenses", isArray: true },
+    tenant_improvement_allowance: { label: "Tenant Improvement Allowance", section: "Expenses" },
+    renewal_options: { label: "Renewal Options", section: "Options", isArray: true },
+    termination_option: { label: "Termination Option", section: "Options" },
+    termination_notice_months: { label: "Termination Notice (months)", section: "Options" },
+    notes: { label: "Notes", section: "Confidence" },
+  },
+  om: {
+    property_name: { label: "Property Name", section: "Property Overview" },
+    property_address: { label: "Property Address", section: "Property Overview" },
+    asset_class: { label: "Asset Class", section: "Property Overview" },
+    property_type: { label: "Property Type", section: "Property Overview" },
+    year_built: { label: "Year Built", section: "Property Overview" },
+    year_renovated: { label: "Year Renovated", section: "Property Overview" },
+    lot_size_acres: { label: "Lot Size (acres)", section: "Property Overview" },
+    building_sf: { label: "Building SF", section: "Property Overview" },
+    total_units: { label: "Total Units", section: "Property Overview" },
+    unit_mix: { label: "Unit Mix", section: "Property Overview", isArray: true },
+    occupancy_rate: { label: "Occupancy Rate", section: "Property Overview" },
+    amenities: { label: "Amenities", section: "Property Overview", isArray: true },
+    asking_price: { label: "Asking Price", section: "Financials" },
+    price_per_unit: { label: "Price / Unit", section: "Financials" },
+    price_per_sf: { label: "Price / SF", section: "Financials" },
+    cap_rate: { label: "Cap Rate", section: "Financials" },
+    noi: { label: "NOI", section: "Financials" },
+    effective_gross_income: { label: "Effective Gross Income", section: "Financials" },
+    operating_expenses: { label: "Operating Expenses", section: "Financials" },
+    expense_ratio: { label: "Expense Ratio", section: "Financials" },
+    gross_rent_multiplier: { label: "GRM", section: "Financials" },
+    average_rent_per_unit: { label: "Avg Rent / Unit", section: "Income" },
+    market_rent_per_unit: { label: "Market Rent / Unit", section: "Income" },
+    rent_growth_potential: { label: "Rent Growth Potential", section: "Income" },
+    other_income: { label: "Other Income", section: "Income" },
+    vacancy_loss: { label: "Vacancy Loss", section: "Income" },
+    proposed_financing: { label: "Proposed Financing", section: "Returns" },
+    loan_to_value: { label: "Loan-to-Value", section: "Returns" },
+    debt_service: { label: "Debt Service", section: "Returns" },
+    cash_on_cash_return: { label: "Cash-on-Cash Return", section: "Returns" },
+    projected_irr: { label: "Projected IRR", section: "Returns" },
+    seller_broker: { label: "Seller / Broker", section: "Context" },
+    notes: { label: "Notes", section: "Confidence" },
+  },
+  psa: {
+    buyer_name: { label: "Buyer Name", section: "Parties" },
+    buyer_entity_type: { label: "Buyer Entity Type", section: "Parties" },
+    seller_name: { label: "Seller Name", section: "Parties" },
+    seller_entity_type: { label: "Seller Entity Type", section: "Parties" },
+    property_address: { label: "Property Address", section: "Property" },
+    legal_description: { label: "Legal Description", section: "Property" },
+    asset_class: { label: "Asset Class", section: "Property" },
+    property_type: { label: "Property Type", section: "Property" },
+    purchase_price: { label: "Purchase Price", section: "Deal Terms" },
+    earnest_money_deposit: { label: "Earnest Money Deposit", section: "Deal Terms" },
+    additional_deposit: { label: "Additional Deposit", section: "Deal Terms" },
+    deposit_escrow_agent: { label: "Escrow Agent", section: "Deal Terms" },
+    closing_date: { label: "Closing Date", section: "Deal Terms" },
+    due_diligence_period_days: { label: "Due Diligence (days)", section: "Deal Terms" },
+    due_diligence_expiration: { label: "DD Expiration", section: "Deal Terms" },
+    financing_contingency: { label: "Financing Contingency", section: "Deal Terms" },
+    financing_type: { label: "Financing Type", section: "Deal Terms" },
+    loan_amount: { label: "Loan Amount", section: "Deal Terms" },
+    inspection_contingency: { label: "Inspection Contingency", section: "Deal Terms" },
+    title_company: { label: "Title Company", section: "Legal" },
+    closing_costs_allocation: { label: "Closing Costs", section: "Legal" },
+    prorations: { label: "Prorations", section: "Legal" },
+    representations_warranties: { label: "Reps & Warranties", section: "Legal" },
+    default_remedies_buyer: { label: "Default (Buyer)", section: "Legal" },
+    default_remedies_seller: { label: "Default (Seller)", section: "Legal" },
+    assignment_rights: { label: "Assignment Rights", section: "Legal" },
+    governing_law: { label: "Governing Law", section: "Legal" },
+    notes: { label: "Notes", section: "Confidence" },
+  },
+};
+
+const SECTIONS_BY_TYPE: Record<DocumentType, string[]> = {
+  lease: ["Tenant Info", "Property", "Lease Terms", "Rent", "Expenses", "Options", "Confidence"],
+  om: ["Property Overview", "Financials", "Income", "Returns", "Context", "Confidence"],
+  psa: ["Parties", "Property", "Deal Terms", "Legal", "Confidence"],
+};
+
+// Lease columns spread for backward compat when saving leases
+const LEASE_COLUMN_KEYS = [
+  "tenant_name", "tenant_entity_type", "property_address", "unit_number", "asset_class",
+  "lease_start_date", "lease_end_date", "lease_term_months", "base_rent_monthly", "base_rent_annual",
+  "rent_escalation_type", "rent_escalation_value", "free_rent_months", "security_deposit",
+  "expense_structure", "tenant_responsible_expenses", "landlord_responsible_expenses",
+  "tenant_improvement_allowance", "renewal_options", "termination_option", "termination_notice_months",
+  "guarantor_name", "commencement_conditions",
+];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -177,9 +270,9 @@ function getApiKey(): string | null {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function FieldValue({ value, fieldName, confidentlyExtracted }: { value: unknown; fieldName: string; confidentlyExtracted: string[] | null }) {
+function FieldValue({ value, fieldName, confidentlyExtracted, docType }: { value: unknown; fieldName: string; confidentlyExtracted: string[] | null; docType: DocumentType }) {
   const isConfident = confidentlyExtracted?.includes(fieldName);
-  const config = fieldConfigs[fieldName];
+  const config = FIELD_SCHEMAS[docType]?.[fieldName];
 
   if (Array.isArray(value)) {
     return (
@@ -659,6 +752,14 @@ function GroupMenu({
   );
 }
 
+function getDisplayData(extraction: SavedLease): { docType: DocumentType; parsed: ParsedFields } {
+  const docType = (extraction.document_type as DocumentType) || "lease";
+  if (docType === "lease" && !extraction.parsed_data) {
+    return { docType, parsed: extraction as unknown as ParsedFields };
+  }
+  return { docType, parsed: (extraction.parsed_data as ParsedFields) || (extraction as unknown as ParsedFields) };
+}
+
 function SingleResult({
   item,
   onBack,
@@ -673,9 +774,19 @@ function SingleResult({
   const filename = isQueueItem ? (item as QueueItem).file.name : (item as SavedLease).filename;
   const fileSize = isQueueItem ? (item as QueueItem).file.size : undefined;
 
-  // For saved leases, reconstruct parsed data from the item
-  const parsed = result?.parsed || (isSavedLease ? (item as SavedLease) : null);
+  let docType: DocumentType = "lease";
+  let parsed: ParsedFields | null = null;
+  if (isQueueItem) {
+    docType = (item as QueueItem).documentType;
+    parsed = result?.parsed ?? null;
+  } else if (isSavedLease) {
+    const display = getDisplayData(item as SavedLease);
+    docType = display.docType;
+    parsed = display.parsed;
+  }
   const usage = result?.usage;
+  const schema = FIELD_SCHEMAS[docType];
+  const sectionsForType = SECTIONS_BY_TYPE[docType];
 
   return (
     <div>
@@ -683,12 +794,15 @@ function SingleResult({
         <ChevronLeft className="h-4 w-4" /> Back
       </button>
 
-      <h2 className="text-xl font-bold text-foreground mb-1">{filename}</h2>
+      <div className="flex items-center gap-3 mb-1">
+        <h2 className="text-xl font-bold text-foreground">{filename}</h2>
+        <Badge className={`text-xs ${DOC_TYPE_BADGE_CLASS[docType]}`}>{DOC_TYPE_LABELS[docType]}</Badge>
+      </div>
       {fileSize && <p className="text-sm text-muted-foreground mb-6">{formatBytes(fileSize)}</p>}
 
       <div className="grid gap-6 mb-8">
-        {sections.map((section) => {
-          const fieldsInSection = Object.entries(fieldConfigs).filter(([_, config]) => config.section === section);
+        {sectionsForType.map((section) => {
+          const fieldsInSection = Object.entries(schema).filter(([_, config]) => config.section === section);
           if (fieldsInSection.length === 0) return null;
           return (
             <Card key={section}>
@@ -702,9 +816,10 @@ function SingleResult({
                       <p className="text-sm font-medium text-foreground">{config.label}</p>
                       {parsed && (
                         <FieldValue
-                          value={parsed[fieldName as keyof LeaseFields]}
+                          value={parsed[fieldName]}
                           fieldName={fieldName}
-                          confidentlyExtracted={(parsed as any).confidently_extracted}
+                          confidentlyExtracted={(parsed.confidently_extracted as string[]) || (parsed.confidence as string[]) || null}
+                          docType={docType}
                         />
                       )}
                     </div>
@@ -735,6 +850,8 @@ function SingleResult({
 
 export default function LeaseParserPage() {
   const [tab, setTab] = useState<"parse" | "saved">("saved");
+  const [documentType, setDocumentType] = useState<DocumentType>("lease");
+  const [savedFilter, setSavedFilter] = useState<DocumentType | "all">("all");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -785,7 +902,7 @@ export default function LeaseParserPage() {
       if (valid.length > remaining) {
         toast({ title: "Limit reached", description: `Only added ${remaining} of ${valid.length} files (max ${MAX_FILES}).` });
       }
-      return [...prev, ...toAdd.map((f) => ({ id: fileId(), file: f, status: "pending" as FileStatus }))];
+      return [...prev, ...toAdd.map((f) => ({ id: fileId(), file: f, status: "pending" as FileStatus, documentType }))];
     });
   };
 
@@ -798,6 +915,7 @@ export default function LeaseParserPage() {
   const parseOneFile = async (item: QueueItem, token: string): Promise<QueueItem> => {
     const formData = new FormData();
     formData.append("file", item.file);
+    formData.append("document_type", item.documentType);
 
     try {
       const response = await fetch(API_URL, {
@@ -895,12 +1013,24 @@ export default function LeaseParserPage() {
         }
 
         // Save extraction data to database
+        const docType = item.documentType;
+        const parsed = item.result!.parsed;
+        const leaseColumns: Record<string, unknown> = {};
+        if (docType === "lease") {
+          for (const k of LEASE_COLUMN_KEYS) {
+            if (k in parsed) leaseColumns[k] = parsed[k];
+          }
+        }
         const extractionData = {
           api_key: apiKey,
           filename: item.file.name,
           file_size: item.file.size,
           storage_path: storagePath,
-          ...item.result!.parsed,
+          document_type: docType,
+          parsed_data: parsed,
+          ...leaseColumns,
+          confidently_extracted: parsed.confidently_extracted ?? parsed.confidence ?? null,
+          notes: parsed.notes ?? null,
           prompt_tokens: item.result!.usage.prompt_tokens,
           completion_tokens: item.result!.usage.completion_tokens,
           estimated_cost: item.result!.usage.estimated_cost,
@@ -1286,14 +1416,18 @@ export default function LeaseParserPage() {
     initSavedTab();
   }, [tab]);
 
-  // Filter leases based on selected group (computed every render, cheap)
-  const filteredLeases =
+  // Filter leases based on selected group + document type filter
+  const groupFilteredLeases =
     selectedGroupId === null
       ? savedLeases
       : savedLeases.filter((lease) => {
           const groupMemberIds = groupMembers.get(selectedGroupId);
           return groupMemberIds?.includes(lease.id);
         });
+  const filteredLeases =
+    savedFilter === "all"
+      ? groupFilteredLeases
+      : groupFilteredLeases.filter((l) => ((l.document_type as DocumentType) || "lease") === savedFilter);
 
   // Group member counts
   const groupMembersCount = new Map<string, number>();
@@ -1308,7 +1442,7 @@ export default function LeaseParserPage() {
     return (
       <main className="max-w-6xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Lease Parse Results</h1>
+          <h1 className="text-2xl font-bold text-foreground">Document Parse Results</h1>
         </div>
         <SingleResult item={viewingItem} onBack={() => setViewingId(null)} />
 
@@ -1329,7 +1463,7 @@ export default function LeaseParserPage() {
     return (
       <main className="max-w-6xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Saved Lease Details</h1>
+          <h1 className="text-2xl font-bold text-foreground">Saved Document Details</h1>
         </div>
         <SingleResult item={viewingSaved as any} onBack={() => setViewingSavedId(null)} isSavedLease />
 
@@ -1356,8 +1490,8 @@ export default function LeaseParserPage() {
     return (
       <main className="px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage and review your saved lease extractions.</p>
+          <h1 className="text-2xl font-bold text-foreground">Document Parser</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage and review your saved document extractions.</p>
         </div>
 
         {/* Tab bar */}
@@ -1365,7 +1499,7 @@ export default function LeaseParserPage() {
           <button
             className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
           >
-            Saved Leases
+            Saved Documents
           </button>
           <button
             onClick={() => setTab("parse")}
@@ -1383,10 +1517,10 @@ export default function LeaseParserPage() {
           <Card className="border-border/50">
             <CardContent className="pt-12 pb-12 text-center">
               <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-muted-foreground">No saved leases yet.</p>
-              <p className="text-sm text-muted-foreground mb-6">Parse some leases and save them to build your library.</p>
+              <p className="text-muted-foreground">No saved documents yet.</p>
+              <p className="text-sm text-muted-foreground mb-6">Parse leases, OMs, or PSAs to build your library.</p>
               <Button onClick={() => setTab("parse")} variant="outline">
-                Parse New Leases
+                Parse New Documents
               </Button>
             </CardContent>
           </Card>
@@ -1411,16 +1545,37 @@ export default function LeaseParserPage() {
 
             {/* Right panel: Leases list */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">
-                  {selectedGroupId === null ? "All Leases" : groups.find((g) => g.id === selectedGroupId)?.name || "Leases"}
+                  {selectedGroupId === null ? "All Documents" : groups.find((g) => g.id === selectedGroupId)?.name || "Documents"}
                 </h3>
                 <Badge variant="secondary">{filteredLeases.length}</Badge>
               </div>
 
+              {/* Document type filter chips */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(["all", "lease", "om", "psa"] as const).map((key) => {
+                  const label = key === "all" ? "All" : key === "lease" ? "Leases" : key === "om" ? "OMs" : "PSAs";
+                  const active = savedFilter === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSavedFilter(key)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
               {filteredLeases.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No leases in this group</p>
+                  <p className="text-sm">No documents in this view</p>
                 </div>
               ) : (
                 <>
@@ -1456,6 +1611,9 @@ export default function LeaseParserPage() {
                           >
                             <div className="flex items-center justify-between gap-2">
                               <p className="text-sm font-medium text-foreground truncate">{lease.filename}</p>
+                              <Badge className={`text-[10px] shrink-0 ${DOC_TYPE_BADGE_CLASS[(lease.document_type as DocumentType) || "lease"]}`}>
+                                {DOC_TYPE_LABELS[(lease.document_type as DocumentType) || "lease"]}
+                              </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
                               {lease.tenant_name && `${lease.tenant_name}`}
@@ -1562,9 +1720,9 @@ export default function LeaseParserPage() {
     return (
       <main className="max-w-4xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+          <h1 className="text-2xl font-bold text-foreground">Document Parser</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
+            Upload up to {MAX_FILES} documents and we'll extract key terms, financials, deal structure, and more.
           </p>
         </div>
 
@@ -1577,7 +1735,7 @@ export default function LeaseParserPage() {
             }}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            Saved Leases
+            Saved Documents
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
@@ -1610,8 +1768,8 @@ export default function LeaseParserPage() {
                   <p className="text-sm font-medium text-foreground truncate">{item.file.name}</p>
                   {item.status === "done" && item.result?.parsed.tenant_name && (
                     <p className="text-xs text-muted-foreground">
-                      {item.result.parsed.tenant_name}
-                      {item.result.parsed.property_address ? ` — ${item.result.parsed.property_address}` : ""}
+                      {String(item.result.parsed.tenant_name)}
+                      {item.result.parsed.property_address ? ` — ${String(item.result.parsed.property_address)}` : ""}
                     </p>
                   )}
                   {item.status === "error" && (
@@ -1620,6 +1778,9 @@ export default function LeaseParserPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
+                <Badge className={`text-[10px] ${DOC_TYPE_BADGE_CLASS[item.documentType]}`}>
+                  {DOC_TYPE_LABELS[item.documentType]}
+                </Badge>
                 {item.status === "done" && (
                   <>
                     <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
@@ -1670,9 +1831,9 @@ export default function LeaseParserPage() {
   return (
     <main className="max-w-4xl px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Lease Parser</h1>
+        <h1 className="text-2xl font-bold text-foreground">Document Parser</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload up to {MAX_FILES} lease documents and we'll extract key terms, tenant info, rent structure, and more.
+          Upload up to {MAX_FILES} documents and we'll extract key terms, financials, deal structure, and more.
         </p>
       </div>
 
@@ -1685,7 +1846,7 @@ export default function LeaseParserPage() {
           }}
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
-          Saved Leases
+          Saved Documents
         </button>
         <button
           className="px-4 py-2 text-sm font-medium text-primary border-b-2 border-primary"
@@ -1694,10 +1855,39 @@ export default function LeaseParserPage() {
         </button>
       </div>
 
+      {/* Document type segmented control */}
+      <div className="mb-6">
+        <p className="text-sm font-medium text-foreground mb-2">Document type</p>
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 gap-1">
+          {(["lease", "om", "psa"] as const).map((dt) => {
+            const active = documentType === dt;
+            return (
+              <button
+                key={dt}
+                onClick={() => {
+                  if (dt !== documentType) {
+                    setDocumentType(dt);
+                    setQueue([]);
+                  }
+                }}
+                disabled={processing}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                } disabled:opacity-50`}
+              >
+                {DOC_TYPE_FULL_LABELS[dt]}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <Card className="border border-border shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileUp className="h-5 w-5" /> Upload Lease Documents
+            <FileUp className="h-5 w-5" /> Upload {DOC_TYPE_FULL_LABELS[documentType]} Documents
           </CardTitle>
           <CardDescription>
             {queue.length === 0
@@ -1752,10 +1942,7 @@ export default function LeaseParserPage() {
           <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
           <div>
             <p className="font-semibold text-foreground mb-1">What gets extracted?</p>
-            <p>
-              Each lease is parsed for 24 key fields including tenant info, property details, lease terms,
-              rent structure, expense allocation, renewal/termination options, and extraction confidence scores.
-            </p>
+            <p>{DOC_TYPE_DESCRIPTIONS[documentType]}</p>
           </div>
         </div>
       </div>
