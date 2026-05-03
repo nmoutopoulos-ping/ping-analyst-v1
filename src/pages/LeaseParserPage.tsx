@@ -1013,12 +1013,24 @@ export default function LeaseParserPage() {
         }
 
         // Save extraction data to database
+        const docType = item.documentType;
+        const parsed = item.result!.parsed;
+        const leaseColumns: Record<string, unknown> = {};
+        if (docType === "lease") {
+          for (const k of LEASE_COLUMN_KEYS) {
+            if (k in parsed) leaseColumns[k] = parsed[k];
+          }
+        }
         const extractionData = {
           api_key: apiKey,
           filename: item.file.name,
           file_size: item.file.size,
           storage_path: storagePath,
-          ...item.result!.parsed,
+          document_type: docType,
+          parsed_data: parsed,
+          ...leaseColumns,
+          confidently_extracted: parsed.confidently_extracted ?? parsed.confidence ?? null,
+          notes: parsed.notes ?? null,
           prompt_tokens: item.result!.usage.prompt_tokens,
           completion_tokens: item.result!.usage.completion_tokens,
           estimated_cost: item.result!.usage.estimated_cost,
