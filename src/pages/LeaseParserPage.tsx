@@ -1442,7 +1442,7 @@ export default function LeaseParserPage() {
     return (
       <main className="max-w-6xl px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Lease Parse Results</h1>
+          <h1 className="text-2xl font-bold text-foreground">Document Parse Results</h1>
         </div>
         <SingleResult item={viewingItem} onBack={() => setViewingId(null)} />
 
