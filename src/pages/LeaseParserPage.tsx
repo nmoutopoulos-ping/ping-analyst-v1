@@ -850,6 +850,8 @@ function SingleResult({
 
 export default function LeaseParserPage() {
   const [tab, setTab] = useState<"parse" | "saved">("saved");
+  const [documentType, setDocumentType] = useState<DocumentType>("lease");
+  const [savedFilter, setSavedFilter] = useState<DocumentType | "all">("all");
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
