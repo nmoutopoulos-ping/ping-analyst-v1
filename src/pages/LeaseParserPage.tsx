@@ -62,6 +62,8 @@ interface SavedLease {
   property_address: string | null;
   base_rent_monthly: number | null;
   created_at: string;
+  document_type?: DocumentType | null;
+  parsed_data?: ParsedFields | null;
   [key: string]: unknown;
 }
 
