@@ -1545,16 +1545,37 @@ export default function LeaseParserPage() {
 
             {/* Right panel: Leases list */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">
-                  {selectedGroupId === null ? "All Leases" : groups.find((g) => g.id === selectedGroupId)?.name || "Leases"}
+                  {selectedGroupId === null ? "All Documents" : groups.find((g) => g.id === selectedGroupId)?.name || "Documents"}
                 </h3>
                 <Badge variant="secondary">{filteredLeases.length}</Badge>
               </div>
 
+              {/* Document type filter chips */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {(["all", "lease", "om", "psa"] as const).map((key) => {
+                  const label = key === "all" ? "All" : key === "lease" ? "Leases" : key === "om" ? "OMs" : "PSAs";
+                  const active = savedFilter === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSavedFilter(key)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
               {filteredLeases.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p className="text-sm">No leases in this group</p>
+                  <p className="text-sm">No documents in this view</p>
                 </div>
               ) : (
                 <>
