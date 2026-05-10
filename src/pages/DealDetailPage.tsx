@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown, CheckSquare, MessageSquare, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown, CheckSquare, MessageSquare, LayoutGrid, FolderOpen, History } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import DealTasksTab from "@/components/tasks/DealTasksTab";
 import DealNotesTab from "@/components/notes/DealNotesTab";
+import DealFilesTab from "@/components/files/DealFilesTab";
+import DealOverviewSummary from "@/components/deal/DealOverviewSummary";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -126,6 +128,7 @@ function DealDetailPageInner() {
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Versions
   const { data: versions = [], isLoading: versionsLoading, isError: versionsError, error: versionsErrorObj, refetch: refetchVersions } = useQuery({
@@ -303,8 +306,31 @@ function DealDetailPageInner() {
           ))}
         </div>
 
+        {/* Tabbed sections */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList>
+            <TabsTrigger value="overview"><LayoutGrid className="h-3.5 w-3.5 mr-1" />Overview</TabsTrigger>
+            <TabsTrigger value="tasks"><CheckSquare className="h-3.5 w-3.5 mr-1" />Tasks</TabsTrigger>
+            <TabsTrigger value="notes"><MessageSquare className="h-3.5 w-3.5 mr-1" />Notes</TabsTrigger>
+            <TabsTrigger value="files"><FolderOpen className="h-3.5 w-3.5 mr-1" />Files</TabsTrigger>
+            <TabsTrigger value="versions"><History className="h-3.5 w-3.5 mr-1" />Versions</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks" className="mt-4">
+            {deal.id ? <DealTasksTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-4">
+            {deal.id ? <DealNotesTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="files" className="mt-4">
+            {deal.id ? <DealFilesTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="versions" className="mt-4">
         {/* Rerun & Versions Section */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left — Rerun panel */}
           <Card>
             <CardHeader className="pb-4">
@@ -507,24 +533,15 @@ function DealDetailPageInner() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Tabbed sections */}
-        <Tabs defaultValue="overview" className="mt-6">
-          <TabsList>
-            <TabsTrigger value="overview"><LayoutGrid className="h-3.5 w-3.5 mr-1" />Overview</TabsTrigger>
-            <TabsTrigger value="tasks"><CheckSquare className="h-3.5 w-3.5 mr-1" />Tasks</TabsTrigger>
-            <TabsTrigger value="notes"><MessageSquare className="h-3.5 w-3.5 mr-1" />Notes</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="tasks" className="mt-4">
-            {deal.id ? <DealTasksTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
           </TabsContent>
 
-          <TabsContent value="notes" className="mt-4">
-            {deal.id ? <DealNotesTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
-          </TabsContent>
-
-          <TabsContent value="overview" className="mt-4">
+          <TabsContent value="overview" className="mt-4 space-y-6">
+        {deal.id && (
+          <DealOverviewSummary
+            dealId={deal.id}
+            onGotoTab={(t) => setActiveTab(t)}
+          />
+        )}
         {/* Two-column layout */}
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-6">
