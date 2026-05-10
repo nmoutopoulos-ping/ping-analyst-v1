@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown, CheckSquare, MessageSquare, LayoutGrid, FolderOpen, History } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown, CheckSquare, MessageSquare, LayoutGrid, FolderOpen, History, MoreHorizontal } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import StageBadge from "@/components/StageBadge";
 import DealTasksTab from "@/components/tasks/DealTasksTab";
 import DealNotesTab from "@/components/notes/DealNotesTab";
 import DealFilesTab from "@/components/files/DealFilesTab";
-import DealOverviewSummary from "@/components/deal/DealOverviewSummary";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
