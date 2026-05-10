@@ -79,7 +79,7 @@ export default function DealTasksTab({ dealId }: Props) {
         </Select>
       </div>
 
-      <TaskQuickCreate onCreate={(input) => createMut.mutateAsync(input)} />
+      <TaskQuickCreate onCreate={async (input) => { await createMut.mutateAsync(input); }} />
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading tasks...</p>}
       {error && <p className="text-sm text-destructive">Failed to load tasks: {(error as Error).message}</p>}
