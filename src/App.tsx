@@ -12,6 +12,7 @@ import CompsPage from "@/pages/CompsPage";
 import AdminPage from "@/pages/AdminPage";
 import MarketSearchPage from "@/pages/MarketSearchPage";
 import LeaseParserPage from "@/pages/LeaseParserPage";
+import TasksPage from "@/pages/TasksPage";
 import NotFound from "@/pages/NotFound";
 import { useEffect } from "react";
 import { supabaseRestoreSession } from "@/lib/supabase";
