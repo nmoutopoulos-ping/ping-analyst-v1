@@ -124,22 +124,6 @@ export function AppSidebar() {
             <SidebarMenu>
               <NavRow to="/deals" icon={LayoutDashboard} label="Deals" badge={activeCount} collapsed={collapsed} />
               <NavRow to="/tasks" icon={CheckSquare} label="Tasks" collapsed={collapsed} />
-              <NavRow to="/documents" icon={FileText} label="Documents" collapsed={collapsed} />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Research group */}
-        <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="px-3 text-[10.5px] uppercase tracking-[0.1em] font-semibold text-muted-foreground">
-              Research
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <NavRow to="/comps" icon={MapPin} label="Comps" collapsed={collapsed} />
-              <NavRow to="/market" icon={BarChart2} label="Market" collapsed={collapsed} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
