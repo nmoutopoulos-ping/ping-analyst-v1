@@ -3,9 +3,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   Plus,
   LayoutDashboard,
-  FileText,
-  MapPin,
-  BarChart2,
   Settings as SettingsIcon,
   PanelLeftClose,
   PanelLeftOpen,
