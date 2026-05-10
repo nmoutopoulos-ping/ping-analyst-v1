@@ -306,8 +306,31 @@ function DealDetailPageInner() {
           ))}
         </div>
 
+        {/* Tabbed sections */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList>
+            <TabsTrigger value="overview"><LayoutGrid className="h-3.5 w-3.5 mr-1" />Overview</TabsTrigger>
+            <TabsTrigger value="tasks"><CheckSquare className="h-3.5 w-3.5 mr-1" />Tasks</TabsTrigger>
+            <TabsTrigger value="notes"><MessageSquare className="h-3.5 w-3.5 mr-1" />Notes</TabsTrigger>
+            <TabsTrigger value="files"><FolderOpen className="h-3.5 w-3.5 mr-1" />Files</TabsTrigger>
+            <TabsTrigger value="versions"><History className="h-3.5 w-3.5 mr-1" />Versions</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks" className="mt-4">
+            {deal.id ? <DealTasksTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-4">
+            {deal.id ? <DealNotesTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="files" className="mt-4">
+            {deal.id ? <DealFilesTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="versions" className="mt-4">
         {/* Rerun & Versions Section */}
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left — Rerun panel */}
           <Card>
             <CardHeader className="pb-4">
