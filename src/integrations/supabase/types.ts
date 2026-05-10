@@ -76,6 +76,63 @@ export type Database = {
           },
         ]
       }
+      deal_files: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          deal_id: string
+          file_size: number | null
+          file_type: string | null
+          filename: string
+          id: string
+          notes: string | null
+          storage_path: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          deal_id: string
+          file_size?: number | null
+          file_type?: string | null
+          filename: string
+          id?: string
+          notes?: string | null
+          storage_path: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          deal_id?: string
+          file_size?: number | null
+          file_type?: string | null
+          filename?: string
+          id?: string
+          notes?: string | null
+          storage_path?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_files_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_files_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_notes: {
         Row: {
           content: string
