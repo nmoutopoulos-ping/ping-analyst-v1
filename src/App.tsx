@@ -44,6 +44,7 @@ const App = () => (
         <Route path="/comps" element={<ProtectedRoute><CompsPage /></ProtectedRoute>} />
         <Route path="/market" element={<ProtectedRoute><MarketSearchPage /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><LeaseParserPage /></ProtectedRoute>} />
+        <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
 
         {/* Backward-compat redirects */}
