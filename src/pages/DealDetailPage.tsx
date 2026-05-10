@@ -508,8 +508,25 @@ function DealDetailPageInner() {
           </Card>
         </div>
 
+        {/* Tabbed sections */}
+        <Tabs defaultValue="overview" className="mt-6">
+          <TabsList>
+            <TabsTrigger value="overview"><LayoutGrid className="h-3.5 w-3.5 mr-1" />Overview</TabsTrigger>
+            <TabsTrigger value="tasks"><CheckSquare className="h-3.5 w-3.5 mr-1" />Tasks</TabsTrigger>
+            <TabsTrigger value="notes"><MessageSquare className="h-3.5 w-3.5 mr-1" />Notes</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks" className="mt-4">
+            {deal.id ? <DealTasksTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="notes" className="mt-4">
+            {deal.id ? <DealNotesTab dealId={deal.id} /> : <p className="text-sm text-muted-foreground">Deal id missing.</p>}
+          </TabsContent>
+
+          <TabsContent value="overview" className="mt-4">
         {/* Two-column layout */}
-        <div className="mt-6 grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-6">
             {/* Property Details */}
             <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
