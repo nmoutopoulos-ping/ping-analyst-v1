@@ -8,6 +8,9 @@ import {
   PanelLeftOpen,
   Shield,
   CheckSquare,
+  FileText,
+  BarChart3,
+  Search,
 } from "lucide-react";
 import {
   Sidebar,
