@@ -8,6 +8,9 @@ import {
   PanelLeftOpen,
   Shield,
   CheckSquare,
+  FileText,
+  BarChart3,
+  Search,
 } from "lucide-react";
 import {
   Sidebar,
@@ -124,6 +127,18 @@ export function AppSidebar() {
             <SidebarMenu>
               <NavRow to="/deals" icon={LayoutDashboard} label="Deals" badge={activeCount} collapsed={collapsed} />
               <NavRow to="/tasks" icon={CheckSquare} label="Tasks" collapsed={collapsed} />
+              <NavRow to="/documents" icon={FileText} label="Documents" collapsed={collapsed} />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Research */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Research</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <NavRow to="/comps" icon={BarChart3} label="Comps" collapsed={collapsed} />
+              <NavRow to="/market" icon={Search} label="Market" collapsed={collapsed} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
