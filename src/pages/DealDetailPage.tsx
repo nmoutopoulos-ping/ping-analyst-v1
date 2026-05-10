@@ -128,6 +128,7 @@ function DealDetailPageInner() {
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const [downloadingDocx, setDownloadingDocx] = useState(false);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<string>("overview");
 
   // Versions
   const { data: versions = [], isLoading: versionsLoading, isError: versionsError, error: versionsErrorObj, refetch: refetchVersions } = useQuery({
