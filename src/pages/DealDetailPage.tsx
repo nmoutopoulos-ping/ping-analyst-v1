@@ -284,12 +284,65 @@ function DealDetailPageInner() {
           <ArrowLeft className="h-4 w-4" /> Back to Deals
         </button>
 
-        <h1 className="text-2xl font-bold text-foreground">{deal.address}</h1>
-        <p className="mt-1 font-mono text-sm text-muted-foreground">{deal.search_id}</p>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-          <Calendar className="h-3 w-3" />
-          {new Date(deal.created_at).toLocaleString()}
-        </p>
+        {/* Page header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{deal.address}</h1>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="font-mono">{deal.search_id}</span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(deal.created_at).toLocaleDateString()}
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <StageBadge stage={deal.stage} className="px-2.5 py-1 text-xs" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-xl h-9 w-9">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Stage</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={deal.stage} onValueChange={handleStageChange}>
+                  {STAGES.map((s) => (
+                    <DropdownMenuRadioItem key={s} value={s} disabled={saving}>{s}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Archive className="h-4 w-4 mr-2" /> Archive deal
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this deal?</AlertDialogTitle>
+                      <AlertDialogDescription>It will be hidden from your board.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          setArchiving(true);
+                          try { await supabaseArchiveDeal(deal.search_id); navigate("/deals"); }
+                          catch { setArchiving(false); }
+                        }}
+                      >Archive</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         {/* Metric cards — show selected version metrics */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
