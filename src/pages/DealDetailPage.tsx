@@ -799,6 +799,8 @@ function DealDetailPageInner() {
             </div>
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </div>
   );
 }
