@@ -126,6 +126,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <NavRow to="/deals" icon={LayoutDashboard} label="Deals" badge={activeCount} collapsed={collapsed} />
+              <NavRow to="/tasks" icon={CheckSquare} label="Tasks" collapsed={collapsed} />
               <NavRow to="/documents" icon={FileText} label="Documents" collapsed={collapsed} />
             </SidebarMenu>
           </SidebarGroupContent>
