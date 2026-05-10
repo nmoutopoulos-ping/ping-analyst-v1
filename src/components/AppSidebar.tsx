@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Shield,
+  CheckSquare,
 } from "lucide-react";
 import {
   Sidebar,
