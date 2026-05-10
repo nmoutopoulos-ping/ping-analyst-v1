@@ -76,6 +76,61 @@ export type Database = {
           },
         ]
       }
+      deal_notes: {
+        Row: {
+          content: string
+          created_at: string | null
+          deal_id: string
+          id: string
+          is_pinned: boolean | null
+          parent_note_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          deal_id: string
+          id?: string
+          is_pinned?: boolean | null
+          parent_note_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          deal_id?: string
+          id?: string
+          is_pinned?: boolean | null
+          parent_note_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_notes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_notes_parent_note_id_fkey"
+            columns: ["parent_note_id"]
+            isOneToOne: false
+            referencedRelation: "deal_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_notes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_photos: {
         Row: {
           api_key: string
@@ -125,6 +180,82 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_tasks: {
+        Row: {
+          assignee_id: string | null
+          blocked_by: string[] | null
+          created_at: string | null
+          deal_id: string | null
+          deal_stage: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string
+          sort_order: number | null
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          blocked_by?: string[] | null
+          created_at?: string | null
+          deal_id?: string | null
+          deal_stage?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          sort_order?: number | null
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assignee_id?: string | null
+          blocked_by?: string[] | null
+          created_at?: string | null
+          deal_id?: string | null
+          deal_stage?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string
+          sort_order?: number | null
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_tasks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]

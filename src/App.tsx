@@ -12,6 +12,7 @@ import CompsPage from "@/pages/CompsPage";
 import AdminPage from "@/pages/AdminPage";
 import MarketSearchPage from "@/pages/MarketSearchPage";
 import LeaseParserPage from "@/pages/LeaseParserPage";
+import TasksPage from "@/pages/TasksPage";
 import NotFound from "@/pages/NotFound";
 import { useEffect } from "react";
 import { supabaseRestoreSession } from "@/lib/supabase";
@@ -43,6 +44,7 @@ const App = () => (
         <Route path="/comps" element={<ProtectedRoute><CompsPage /></ProtectedRoute>} />
         <Route path="/market" element={<ProtectedRoute><MarketSearchPage /></ProtectedRoute>} />
         <Route path="/documents" element={<ProtectedRoute><LeaseParserPage /></ProtectedRoute>} />
+        <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
 
         {/* Backward-compat redirects */}
