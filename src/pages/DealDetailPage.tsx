@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown, CheckSquare, MessageSquare, LayoutGrid, FolderOpen, History } from "lucide-react";
+import { ArrowLeft, Download, Calendar, Archive, Loader2, MapPin, RefreshCw, ChevronUp, FileDown, CheckSquare, MessageSquare, LayoutGrid, FolderOpen, History, MoreHorizontal } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import StageBadge from "@/components/StageBadge";
 import DealTasksTab from "@/components/tasks/DealTasksTab";
 import DealNotesTab from "@/components/notes/DealNotesTab";
 import DealFilesTab from "@/components/files/DealFilesTab";
-import DealOverviewSummary from "@/components/deal/DealOverviewSummary";
 import { getApiKey } from "@/lib/api";
 import { supabaseGetDeal, supabaseArchiveDeal, supabaseUpdateDealStage, supabaseCreateSignedUrl } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -283,12 +284,65 @@ function DealDetailPageInner() {
           <ArrowLeft className="h-4 w-4" /> Back to Deals
         </button>
 
-        <h1 className="text-2xl font-bold text-foreground">{deal.address}</h1>
-        <p className="mt-1 font-mono text-sm text-muted-foreground">{deal.search_id}</p>
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-          <Calendar className="h-3 w-3" />
-          {new Date(deal.created_at).toLocaleString()}
-        </p>
+        {/* Page header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">{deal.address}</h1>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span className="font-mono">{deal.search_id}</span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(deal.created_at).toLocaleDateString()}
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <StageBadge stage={deal.stage} className="px-2.5 py-1 text-xs" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-xl h-9 w-9">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Stage</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={deal.stage} onValueChange={handleStageChange}>
+                  {STAGES.map((s) => (
+                    <DropdownMenuRadioItem key={s} value={s} disabled={saving}>{s}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Archive className="h-4 w-4 mr-2" /> Archive deal
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this deal?</AlertDialogTitle>
+                      <AlertDialogDescription>It will be hidden from your board.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          setArchiving(true);
+                          try { await supabaseArchiveDeal(deal.search_id); navigate("/deals"); }
+                          catch { setArchiving(false); }
+                        }}
+                      >Archive</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
 
         {/* Metric cards — show selected version metrics */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -536,19 +590,10 @@ function DealDetailPageInner() {
           </TabsContent>
 
           <TabsContent value="overview" className="mt-4 space-y-6">
-        {deal.id && (
-          <DealOverviewSummary
-            dealId={deal.id}
-            onGotoTab={(t) => setActiveTab(t)}
-          />
-        )}
-        {/* Two-column layout */}
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 space-y-6">
             {/* Property Details */}
             <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <h3 className="mb-4 text-sm font-semibold text-foreground">Property Details</h3>
-              <div className="grid grid-cols-2 gap-y-3 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 text-sm">
                 {[
                   ["Date", new Date(deal.created_at).toLocaleDateString()],
                   ["Total Units", deal.total_units ?? "--"],
@@ -566,53 +611,53 @@ function DealDetailPageInner() {
             </section>
 
             {/* Comp Summary */}
-              <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-foreground">Comp Summary</h3>
-                  <Link
-                    to="/comps"
-                    className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    <MapPin className="h-3 w-3" /> View Comp Map
-                  </Link>
+            <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-foreground">Comp Summary</h3>
+                <Link
+                  to="/comps"
+                  className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  <MapPin className="h-3 w-3" /> View Comp Map
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
+                <div>
+                  <span className="label-uppercase">Total Comps</span>
+                  <p className="mt-0.5 text-foreground">{c?.reduce((s, e) => s + e.count, 0) ?? 0}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-y-3 text-sm mb-4">
-                  <div>
-                    <span className="label-uppercase">Total Comps</span>
-                    <p className="mt-0.5 text-foreground">{c?.reduce((s, e) => s + e.count, 0) ?? 0}</p>
-                  </div>
-                  <div>
-                    <span className="label-uppercase">Radius</span>
-                    <p className="mt-0.5 text-foreground">{deal.radius ? `${deal.radius} mi` : "--"}</p>
-                  </div>
+                <div>
+                  <span className="label-uppercase">Radius</span>
+                  <p className="mt-0.5 text-foreground">{deal.radius ? `${deal.radius} mi` : "--"}</p>
                 </div>
-                {c && c.length > 0 && (
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="bg-muted/50 text-muted-foreground">
-                          <th className="text-left px-3 py-2 font-medium">Unit Type</th>
-                          <th className="text-right px-3 py-2 font-medium">Units</th>
-                          <th className="text-right px-3 py-2 font-medium">Comps</th>
-                          <th className="text-right px-3 py-2 font-medium">Avg Rent</th>
-                          <th className="text-right px-3 py-2 font-medium">Avg Sqft</th>
+              </div>
+              {c && c.length > 0 && (
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/50 text-muted-foreground">
+                        <th className="text-left px-3 py-2 font-medium">Unit Type</th>
+                        <th className="text-right px-3 py-2 font-medium">Units</th>
+                        <th className="text-right px-3 py-2 font-medium">Comps</th>
+                        <th className="text-right px-3 py-2 font-medium">Avg Rent</th>
+                        <th className="text-right px-3 py-2 font-medium">Avg Sqft</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {c.map((entry, i) => (
+                        <tr key={i} className="border-t border-border">
+                          <td className="px-3 py-2 font-medium text-foreground">{entry.beds}bd / {entry.baths}ba</td>
+                          <td className="px-3 py-2 text-right text-foreground">{entry.units}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{entry.count}</td>
+                          <td className="px-3 py-2 text-right text-foreground">${entry.avg_rent?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{entry.avg_sqft?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {c.map((entry, i) => (
-                          <tr key={i} className="border-t border-border">
-                            <td className="px-3 py-2 font-medium text-foreground">{entry.beds}bd / {entry.baths}ba</td>
-                            <td className="px-3 py-2 text-right text-foreground">{entry.units}</td>
-                            <td className="px-3 py-2 text-right text-foreground">{entry.count}</td>
-                            <td className="px-3 py-2 text-right text-foreground">${entry.avg_rent?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                            <td className="px-3 py-2 text-right text-foreground">{entry.avg_sqft?.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </section>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
 
             {/* Assumptions */}
             {deal.assumptions_snapshot && (
@@ -620,7 +665,7 @@ function DealDetailPageInner() {
                 <h3 className="mb-4 text-sm font-semibold text-foreground">
                   Assumptions{deal.preset_name ? ` -- ${deal.preset_name}` : ""}
                 </h3>
-                <div className="grid grid-cols-2 gap-y-3 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 text-sm">
                   {[
                     ["LTV", fmt(deal.assumptions_snapshot.ltv, "pct")],
                     ["Vacancy Rate", fmt(deal.assumptions_snapshot.vacancy, "pct")],
@@ -650,7 +695,7 @@ function DealDetailPageInner() {
                     </Badge>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-y-3 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 text-sm">
                   {[
                     ["Cap Rate", fmt(nSelected.cap_rate, "pct")],
                     ["NOI", fmt(nSelected.noi, "usd")],
@@ -670,68 +715,10 @@ function DealDetailPageInner() {
               </section>
             )}
 
-            {/* Deal Photos */}
-              <section className="rounded-xl border border-border bg-card p-6">
-                <DealPhotoGallery dealId={id!} apiKey={getApiKey()} />
-              </section>
-          </div>
-
-          {/* Right sidebar */}
-          <div className="space-y-6">
-            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Stage</h3>
-              <select
-                value={deal.stage}
-                onChange={(e) => handleStageChange(e.target.value)}
-                disabled={saving}
-                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {STAGES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-              {saving && <p className="mt-2 text-xs text-muted-foreground">Saving...</p>}
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    disabled={archiving}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Archive className="h-4 w-4" /> {archiving ? "Archiving..." : "Archive Deal"}
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Archive this deal?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      It will be hidden from your board.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={async () => {
-                        setArchiving(true);
-                        try {
-                          await supabaseArchiveDeal(deal.search_id);
-                          navigate("/deals");
-                        } catch {
-                          setArchiving(false);
-                        }
-                      }}
-                    >
-                      Archive
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-
-            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-foreground">Downloads</h3>
-              <div className="space-y-2">
+            {/* Downloads */}
+            <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <h3 className="mb-4 text-sm font-semibold text-foreground">Downloads</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {(deal.excel_data || deal.excel_path) ? (
                   <button
                     disabled={downloadingExcel}
@@ -744,11 +731,8 @@ function DealDetailPageInner() {
                         const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        a.href = url; a.download = filename;
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
                         URL.revokeObjectURL(url);
                       } else if (deal.excel_path) {
                         setDownloadingExcel(true);
@@ -757,18 +741,16 @@ function DealDetailPageInner() {
                           window.open(signedUrl, "_blank");
                         } catch {
                           toast({ title: "Error", description: "Failed to download Excel file.", variant: "destructive" });
-                        } finally {
-                          setDownloadingExcel(false);
-                        }
+                        } finally { setDownloadingExcel(false); }
                       }
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
                   >
                     {downloadingExcel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {downloadingExcel ? "Downloading..." : " Download Excel Report"}
+                    {downloadingExcel ? "Downloading..." : "Download Excel Report"}
                   </button>
                 ) : (
-                  <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
                     <Download className="h-4 w-4" /> Excel -- Not available
                   </div>
                 )}
@@ -784,11 +766,8 @@ function DealDetailPageInner() {
                         const blob = new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement("a");
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        a.href = url; a.download = filename;
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
                         URL.revokeObjectURL(url);
                       } else if (deal.docx_path) {
                         setDownloadingDocx(true);
@@ -797,25 +776,26 @@ function DealDetailPageInner() {
                           window.open(signedUrl, "_blank");
                         } catch {
                           toast({ title: "Error", description: "Failed to download Word file.", variant: "destructive" });
-                        } finally {
-                          setDownloadingDocx(false);
-                        }
+                        } finally { setDownloadingDocx(false); }
                       }
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-blue-500/10 px-4 py-2.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
                   >
                     {downloadingDocx ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                    {downloadingDocx ? "Downloading..." : " Download Word Report"}
+                    {downloadingDocx ? "Downloading..." : "Download Word Report"}
                   </button>
                 ) : (
-                  <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2 rounded-lg bg-muted/50 px-4 py-2.5 text-sm font-medium text-muted-foreground">
                     <Download className="h-4 w-4" /> Word -- Not available
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
+            </section>
+
+            {/* Deal Photos */}
+            <section className="rounded-xl border border-border bg-card p-6">
+              <DealPhotoGallery dealId={id!} apiKey={getApiKey()} />
+            </section>
           </TabsContent>
         </Tabs>
       </div>
